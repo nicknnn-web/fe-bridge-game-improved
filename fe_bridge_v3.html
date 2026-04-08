@@ -279,6 +279,13 @@ canvas{
   opacity:0.3;
   cursor:not-allowed;
 }
+.end-turn-btn.pulse{
+  animation:pulse-btn 0.8s ease-in-out infinite;
+}
+@keyframes pulse-btn{
+  0%,100%{ box-shadow:0 0 0 0 rgba(240,192,64,0.4); }
+  50%{ box-shadow:0 0 0 8px rgba(240,192,64,0); }
+}
 
 /* ===== 右侧面板 ===== */
 .right-panel{
@@ -573,6 +580,10 @@ canvas{
 const T = { PLAIN:0, FOREST:1, BLUE_CASTLE:2, RED_CASTLE:3, MOUNTAIN:4, RIVER:5, BRIDGE:6, RUINS:7, HILL:8, WALL:9 };
 const TS = 44;
 const WP_KEYS = { SWORD:'sword', AXE:'axe', LANCE:'lance', BOW:'bow' };
+const MV_COST = {};
+MV_COST[T.PLAIN]=1; MV_COST[T.FOREST]=2; MV_COST[T.BLUE_CASTLE]=3;
+MV_COST[T.RED_CASTLE]=3; MV_COST[T.MOUNTAIN]=99; MV_COST[T.RIVER]=99;
+MV_COST[T.BRIDGE]=1; MV_COST[T.RUINS]=2; MV_COST[T.HILL]=2; MV_COST[T.WALL]=99;
 
 const MAP = [
   [3,0,7,0,0,9,9,0,0,7,0,0],
@@ -651,10 +662,6 @@ function dmg(a,b){
 // ================================================================
 function bfs(u){
   const vis={}, res=[], q=[[u.x,u.y,0]]; vis[`${u.x},${u.y}`]=1;
-  const mvCost={};
-  mvCost[T.PLAIN]=1; mvCost[T.FOREST]=2; mvCost[T.BLUE_CASTLE]=3;
-  mvCost[T.RED_CASTLE]=3; mvCost[T.MOUNTAIN]=3; mvCost[T.BRIDGE]=1;
-  mvCost[T.RUINS]=2; mvCost[T.HILL]=2; mvCost[T.WALL]=99;
   while(q.length){
     const [x,y,d]=q.shift();
     if(d>0) res.push([x,y]);
@@ -665,7 +672,7 @@ function bfs(u){
       const t=MAP[ny][nx];
       if(t===T.RIVER||t===T.WALL||t===T.MOUNTAIN) continue;
       if(game.unitAt(nx,ny)) continue;
-      vis[k]=1; q.push([nx,ny,d+(mvCost[t]||1)]);
+      vis[k]=1; q.push([nx,ny,d+(MV_COST[t]||1)]);
     }
   }
   return res;
@@ -756,11 +763,8 @@ const UI={
   },
   getTerrainInfo(u){
     const t=MAP[u.y]?.[u.x];
-    const mvCost={}; mvCost[T.PLAIN]=1; mvCost[T.FOREST]=2; mvCost[T.BLUE_CASTLE]=3;
-    mvCost[T.RED_CASTLE]=3; mvCost[T.MOUNTAIN]=99; mvCost[T.RIVER]=99;
-    mvCost[T.BRIDGE]=1; mvCost[T.RUINS]=2; mvCost[T.HILL]=2; mvCost[T.WALL]=99;
-    const passable=(mvCost[t]||1)<99;
-    return{t, cost:mvCost[t]||1, passable};
+    const passable=(MV_COST[t]||1)<99;
+    return{t, cost:MV_COST[t]||1, passable};
   },
   showTerrain(x,y){
     const el=document.getElementById('unitDetail');
@@ -893,6 +897,7 @@ const game={
     this.sel=null; this.mvRange=[]; this.atkTargets=[];
     UI.updateTurn('第 1 回合',false);
     document.getElementById('endTurnBtn').disabled=false;
+    document.getElementById('endTurnBtn').classList.remove('pulse');
     Log.clear();
     Log.add('<span class="system">⚔ 战斗开始</span>');
     Renderer.showBanner('第 1 回合',false,2000);
@@ -996,6 +1001,8 @@ const game={
     Renderer.addFloater(df.x,df.y,finalDmg,r.c,r.c);
     Renderer.addParticles(df.x,df.y,r.c?'#fbbf24':'#ef4444',r.c?8:4);
     Renderer.shake(r.c?10:5);
+    Renderer._trail={x1:at.px+TS/2,y1:at.py+TS/2,x2:df.px+TS/2,y2:df.py+TS/2,t:0,duration:15};
+    Renderer._popup={x:df.px+TS/2,y:df.py-10,text:`-${finalDmg}`,life:40,ml:40}; Renderer._popupTimer=40;
     df.flash=5; df.hp=Math.max(0,df.hp-finalDmg);
     Log.add(`<span class="attacker">${at.nm}</span> 攻击 <span class="defender">${df.nm}</span> <span class="damage">-${finalDmg}</span>${r.c?' <span class="crit">💥</span>':''}`);
     const canCt=df.wp.r>=at.wp.r&&!r.c&&df.hp>0;
@@ -1017,8 +1024,15 @@ const game={
 
   checkAllDone(){
     const alive=this.units.filter(u=>u.isPlayer&&!u.dead);
-    // 按钮始终可点击，让玩家可以手动结束回合（即使所有单位都行动完了）
-    document.getElementById('endTurnBtn').disabled=alive.length===0;
+    const allDone=alive.length>0&&alive.every(u=>u.done||u.moved);
+    const btn=document.getElementById('endTurnBtn');
+    btn.disabled=alive.length===0;
+    // 所有存活单位都已行动时，按钮闪烁提示
+    if(allDone&&this.phase==='player'){
+      btn.classList.add('pulse');
+    }else{
+      btn.classList.remove('pulse');
+    }
   },
 
   checkEnd(){
@@ -1128,6 +1142,8 @@ const game={
     Renderer.addFloater(df.x,df.y,finalDmg,r.c,r.c);
     Renderer.addParticles(df.x,df.y,r.c?'#fbbf24':'#ef4444',r.c?8:4);
     Renderer.shake(r.c?10:5);
+    Renderer._trail={x1:at.px+TS/2,y1:at.py+TS/2,x2:df.px+TS/2,y2:df.py+TS/2,t:0,duration:15};
+    Renderer._popup={x:df.px+TS/2,y:df.py-10,text:`-${finalDmg}`,life:40,ml:40}; Renderer._popupTimer=40;
     df.flash=5; df.hp=Math.max(0,df.hp-finalDmg);
     Log.add(`<span class="defender">${at.nm}</span> 攻击 <span class="attacker">${df.nm}</span> <span class="damage">-${finalDmg}</span>${r.c?' <span class="crit">💥</span>':''}`);
     if(df.hp<=0&&!df.dead){df.dead=true; df.dying=true; Log.add(`<span class="death">${df.nm} 生命归零</span>`);}
@@ -1153,6 +1169,7 @@ const game={
     this.units.forEach(u=>u.reset());
     UI.updateTurn(`第 ${this.turn} 回合`,false);
     document.getElementById('endTurnBtn').disabled=false;
+    document.getElementById('endTurnBtn').classList.remove('pulse');
     Log.add('<span class="turn-marker">— 第 '+this.turn+' 回合 —</span>');
     Renderer.showBanner('第 '+this.turn+' 回合',false,2000);
   },
@@ -1172,9 +1189,17 @@ const game={
     if(this.atkTargets.length) Renderer.atkRange(this.atkTargets,this.sel?this.sel.wp.t:'');
     if(this._hovered) Renderer.hoverTile(this._hovered[0],this._hovered[1],t);
     if(Renderer._hoverPath) Renderer.mvPath(Renderer._hoverPath);
+    // 悬停时显示移动消耗
+    if(this._hovered&&this.sel&&!this.sel.moved&&this.mvRange.some(([mx,my])=>mx===this._hovered[0]&&my===this._hovered[1])){
+      const tx=this._hovered[0], ty=this._hovered[1];
+      const c=MAP[ty][tx];
+      Renderer.hoverMvCost(tx,ty,MV_COST[c]<99?MV_COST[c]:null);
+    }
     this.units.forEach(u=>{u.tick(); Renderer.unit(u,this.sel===u,t,this.atkTargets.includes(u));});
     Renderer.particles();
     Renderer.floaters();
+    Renderer.trail();
+    Renderer.popup();
     Renderer.banner();
     Renderer.miniMap(game.units);
     if(Renderer._combo>0) Renderer.combo(Renderer._combo);
@@ -1198,6 +1223,7 @@ const game={
 const Renderer={
   canvas:null, ctx:null,
   _ps:[], _ft:[], _banner:null, _shake:0, _hoverPath:null, _combo:0,
+  _trail:null, _popup:null, _popupTimer:0,
   spriteSheet:null, spriteReady:false,
   // Sprite 索引映射 (32x32 per sprite, 512x96 sheet: 16列x3行)
   // 地形(行0) | 蓝队单位(行1) | 红队单位(行2)
@@ -1287,6 +1313,16 @@ const Renderer={
     const pulse=0.5+Math.sin(t*4)*0.5;
     c.strokeStyle=`rgba(251,191,36,${pulse})`; c.lineWidth=2;
     c.strokeRect(x*TS+2,y*TS+2,TS-4,TS-4);
+  },
+  hoverMvCost(x,y,cost){
+    const c=this.ctx;
+    if(!cost||cost>=99) return;
+    c.font='bold 10px "Press Start 2P",monospace';
+    c.textAlign='center';
+    c.fillStyle='rgba(0,0,0,0.6)';
+    c.fillText(cost,x*TS+TS/2+1,y*TS+TS/2+4+1);
+    c.fillStyle='rgba(255,220,100,0.9)';
+    c.fillText(cost,x*TS+TS/2,y*TS+TS/2+4);
   },
   mvPath(path){
     if(!path||path.length<2) return;
@@ -1528,6 +1564,52 @@ const Renderer={
     });
   },
   addParticles(x,y,col,ct){ for(let i=0;i<ct;i++) this._ps.push({x:x*TS+22,y:y*TS+22,vx:(Math.random()-.5)*5,vy:(Math.random()-.5)*5,life:25+Math.random()*10,c:col,s:Math.random()*2.5+.5}); },
+  trail(){
+    if(!this._trail) return;
+    const tr=this._trail, c=this.ctx;
+    tr.t++;
+    const progress=tr.t/tr.duration;
+    if(progress>=1){this._trail=null; return;}
+    const alpha=(1-progress)*0.6;
+    const sw=8*(1-progress)+2;
+    // 绘制攻击轨迹曲线
+    c.save();
+    c.globalAlpha=alpha;
+    c.strokeStyle='#fbbf24';
+    c.lineWidth=sw;
+    c.lineCap='round';
+    c.beginPath();
+    const mx=(tr.x1+tr.x2)/2+(Math.sin(progress*Math.PI)*30*(tr.y2>tr.y1?1:-1));
+    const my=(tr.y1+tr.y2)/2;
+    c.moveTo(tr.x1,tr.y1);
+    c.quadraticCurveTo(mx,my,tr.x2,tr.y2);
+    c.stroke();
+    // 高光
+    c.strokeStyle='#fff';
+    c.lineWidth=sw*0.4;
+    c.stroke();
+    c.restore();
+  },
+  popup(){
+    if(!this._popup||this._popupTimer<=0) return;
+    this._popupTimer--;
+    const p=this._popup, c=this.ctx;
+    p.life--;
+    const progress=p.life/p.ml;
+    const alpha=progress;
+    if(progress<=0){this._popup=null; return;}
+    const scale=0.8+progress*0.2;
+    c.save();
+    c.globalAlpha=alpha;
+    c.fillStyle='rgba(0,0,0,0.5)';
+    const pw=50*scale, ph=20*scale;
+    c.fillRect(p.x-pw/2,p.y-ph/2,pw,ph);
+    c.fillStyle='#fbbf24';
+    c.font=`bold ${12*scale}px "Press Start 2P",monospace`;
+    c.textAlign='center'; c.textBaseline='middle';
+    c.fillText(p.text,p.x,p.y);
+    c.restore();
+  },
   banner(){
     if(!this._banner) return;
     const b=this._banner, c=this.ctx;
