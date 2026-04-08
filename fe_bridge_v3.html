@@ -1040,7 +1040,7 @@ const game={
     Renderer.map(t);
     if(this.mvRange.length) Renderer.mvRange(this.mvRange);
     if(this.atkTargets.length) Renderer.atkRange(this.atkTargets);
-    this.units.forEach(u=>{u.tick(); Renderer.unit(u,this.sel===u,t);});
+    this.units.forEach(u=>{u.tick(); Renderer.unit(u,this.sel===u,t,this.atkTargets.includes(u));});
     Renderer.particles();
     Renderer.floaters();
     this.units.forEach(u=>{
@@ -1131,7 +1131,7 @@ const Renderer={
       c.fillRect(u.x*TS+3,u.y*TS+3,TS-6,TS-6); c.strokeRect(u.x*TS+3,u.y*TS+3,TS-6,TS-6);
     });
   },
-  unit(u,sel,t){
+  unit(u,sel,t,isAtkTarget){
     if(u.dead) return;
     const c=this.ctx;
     const bob=Math.sin(t*2+u.bob)*1.5;
@@ -1152,6 +1152,15 @@ const Renderer={
       c.strokeStyle=`rgba(251,191,36,${pulse})`; c.lineWidth=3;
       c.beginPath(); c.arc(px,py,20,0,7); c.stroke();
       c.shadowColor='#fbbf24'; c.shadowBlur=15;
+    }
+
+    // attack target flashing border (orange pulse)
+    if(isAtkTarget){
+      const pulse=0.5+Math.sin(t*5)*0.5;
+      c.strokeStyle=`rgba(251,191,36,${pulse})`; c.lineWidth=2;
+      c.shadowColor='#fbbf24'; c.shadowBlur=10;
+      c.beginPath(); c.arc(px,py,20,0,7); c.stroke();
+      c.shadowBlur=0;
     }
 
     // bg circle
