@@ -1,0 +1,1284 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>火焰纹章：断桥之战</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Noto+Sans+SC:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ===== GBA像素风格配色 ===== */
+:root{
+  --bg-deep:#0a0a0a;
+  --bg-panel:#1a1a2e;
+  --bg-card:#1a1a2e;
+  --bg-dark:#0a0a0a;
+  --border-panel:#4a4a6a;
+  --border-title:#6060a0;
+  --gold:#f0c040;
+  --gold-dim:#c09030;
+  --blue:#3060d0;
+  --blue-bright:#5080f0;
+  --red:#c03030;
+  --red-bright:#e05050;
+  --green:#40a040;
+  --text-primary:#e0e0e0;
+  --text-dim:#8888aa;
+  --text-muted:#606080;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden}
+body{
+  background:var(--bg-deep);
+  color:var(--text-primary);
+  font-family:'Noto Sans SC',sans-serif;
+  display:flex;align-items:center;justify-content:center;
+  min-height:100vh;
+}
+
+/* ===== 顶部标题栏 ===== */
+.header{
+  position:fixed;top:0;left:0;right:0;
+  height:52px;
+  background:var(--bg-deep);
+  border-bottom:3px solid var(--gold);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 24px;
+  z-index:100;
+}
+.header-left{display:flex;align-items:center;gap:16px}
+.game-title{
+  font-family:'Press Start 2P',monospace;
+  font-size:10px;
+  color:var(--gold);
+  letter-spacing:1px;
+}
+.turn-badge{
+  font-family:'Press Start 2P',monospace;
+  font-size:8px;
+  padding:6px 12px;
+  background:#1a3060;
+  border:2px solid var(--blue);
+  color:#80a0ff;
+  letter-spacing:1px;
+}
+.turn-badge.enemy{
+  background:#601a1a;
+  border:2px solid var(--red);
+  color:#ff8080;
+}
+.header-right{display:flex;align-items:center;gap:12px}
+.header-btn{
+  font-family:'Press Start 2P',monospace;
+  font-size:8px;
+  padding:6px 12px;
+  border:2px solid var(--border-panel);
+  background:transparent;
+  color:var(--text-dim);
+  cursor:pointer;
+  transition:all 0.15s;
+}
+.header-btn:hover{
+  border-color:var(--gold);
+  color:var(--gold);
+  background:var(--bg-panel);
+}
+
+/* ===== 主布局 ===== */
+.main-layout{
+  display:flex;
+  gap:16px;
+  padding:68px 20px 20px;
+  width:100%;
+  max-width:1200px;
+  height:100vh;
+  box-sizing:border-box;
+}
+
+/* ===== 左侧面板 ===== */
+.left-panel{
+  width:230px;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  flex-shrink:0;
+}
+.info-card{
+  background:var(--bg-panel);
+  border:2px solid var(--border-panel);
+  padding:0;
+  position:relative;
+  overflow:hidden;
+}
+.info-card-title{
+  font-family:'Press Start 2P',monospace;
+  font-size:8px;
+  color:var(--gold);
+  margin-bottom:10px;
+  padding:8px 10px;
+  background:#2a2a4e;
+  border-bottom:2px solid var(--border-title);
+  letter-spacing:0.5px;
+}
+.objective-text{
+  font-size:12px;
+  color:var(--text-primary);
+  line-height:1.8;
+  padding:0 10px 10px;
+}
+
+/* ===== 战斗日志 ===== */
+.log-card{
+  background:var(--bg-panel);
+  border:2px solid var(--border-panel);
+  padding:0;
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  min-height:0;
+}
+.log-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:10px;
+  padding:8px 10px;
+  background:#2a2a4e;
+  border-bottom:2px solid var(--border-title);
+}
+.log-title{
+  font-family:'Press Start 2P',monospace;
+  font-size:8px;
+  color:var(--gold);
+  letter-spacing:0.5px;
+}
+.log-count{
+  font-size:10px;
+  color:var(--text-muted);
+}
+.log-scroll{
+  flex:1;
+  overflow-y:auto;
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+  padding:0 8px 8px;
+}
+.log-scroll::-webkit-scrollbar{width:6px}
+.log-scroll::-webkit-scrollbar-track{background:var(--bg-dark)}
+.log-scroll::-webkit-scrollbar-thumb{background:var(--border-panel)}
+.log-entry{
+  font-size:11px;
+  line-height:1.5;
+  color:var(--text-dim);
+  padding:4px 0;
+  border-bottom:1px solid rgba(255,255,255,0.03);
+}
+.log-entry .attacker{color:#5080f0}
+.log-entry .defender{color:#e05050}
+.log-entry .damage{color:var(--gold);font-weight:600}
+.log-entry .crit{color:#ff9f43;font-weight:600}
+.log-entry .death{color:#e05050}
+.log-entry .system{color:var(--text-muted)}
+.log-entry .turn-marker{color:var(--gold);font-family:'Press Start 2P',monospace;font-size:7px}
+
+/* ===== 棋盘区域 ===== */
+.board-area{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:12px;
+}
+.board-wrapper{
+  position:relative;
+  background:var(--bg-panel);
+  border:2px solid var(--border-panel);
+  padding:8px;
+}
+.board-inner{
+  position:relative;
+}
+canvas{
+  display:block;
+  cursor:pointer;
+}
+
+/* 开始界面 */
+.overlay{
+  position:absolute;inset:0;
+  background:rgba(10,10,10,0.95);
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  z-index:20;
+  transition:opacity 0.3s;
+}
+.overlay.hidden{opacity:0;pointer-events:none}
+.overlay-title{
+  font-family:'Press Start 2P',monospace;
+  font-size:16px;
+  color:var(--gold);
+  margin-bottom:16px;
+  text-align:center;
+  line-height:1.6;
+}
+.overlay-sub{
+  font-family:'Noto Sans SC',sans-serif;
+  font-size:13px;
+  color:var(--text-dim);
+  margin-bottom:28px;
+  text-align:center;
+  line-height:1.8;
+  max-width:380px;
+}
+.overlay-btn{
+  font-family:'Press Start 2P',monospace;
+  font-size:10px;
+  padding:12px 28px;
+  border:2px solid var(--gold);
+  background:transparent;
+  color:var(--gold);
+  cursor:pointer;
+  transition:all 0.15s;
+}
+.overlay-btn:hover{
+  background:var(--gold);
+  color:var(--bg-deep);
+}
+
+/* 回合结束按钮 */
+.turn-controls{
+  display:flex;
+  gap:10px;
+}
+.end-turn-btn{
+  font-family:'Press Start 2P',monospace;
+  font-size:9px;
+  padding:10px 24px;
+  border:2px solid var(--gold-dim);
+  background:transparent;
+  color:var(--gold);
+  cursor:pointer;
+  transition:all 0.15s;
+}
+.end-turn-btn:hover:not(:disabled){
+  border-color:var(--gold);
+  background:var(--bg-panel);
+}
+.end-turn-btn:disabled{
+  opacity:0.3;
+  cursor:not-allowed;
+}
+
+/* ===== 右侧面板 ===== */
+.right-panel{
+  width:230px;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  flex-shrink:0;
+}
+
+/* 单位详情卡 */
+.unit-card{
+  background:var(--bg-panel);
+  border:2px solid var(--border-panel);
+  padding:0;
+  min-height:180px;
+}
+.unit-empty{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  height:120px;
+  color:var(--text-muted);
+  font-size:12px;
+}
+.unit-header{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-bottom:12px;
+  padding:10px;
+  background:#2a2a4e;
+  border-bottom:2px solid var(--border-title);
+}
+.unit-face{
+  width:48px;height:48px;
+  background:var(--bg-dark);
+  border:2px solid var(--border-panel);
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;
+}
+.unit-info{flex:1}
+.unit-name{
+  font-family:'Press Start 2P',monospace;
+  font-size:10px;
+  color:var(--text-primary);
+  margin-bottom:4px;
+}
+.unit-class{
+  font-size:11px;
+  color:var(--text-dim);
+}
+.weapon-badge{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:9px;padding:4px 6px;
+  border:1px solid;
+  font-family:'Noto Sans SC',sans-serif;
+}
+.weapon-badge.sword{border-color:#3060d0;color:#6090ff;background:rgba(48,96,208,0.15)}
+.weapon-badge.axe{border-color:#a855f7;color:#c49aff;background:rgba(168,85,247,0.15)}
+.weapon-badge.lance{border-color:#4adfa1;color:#6affb3;background:rgba(74,201,139,0.15)}
+.weapon-badge.bow{border-color:#f59e0b;color:#fbbf24;background:rgba(245,158,11,0.15)}
+
+.unit-hp-section{margin-bottom:12px;padding:0 10px}
+.hp-label{
+  display:flex;justify-content:space-between;
+  font-size:10px;color:var(--text-dim);
+  margin-bottom:4px;
+}
+.hp-bar-bg{
+  height:10px;background:var(--bg-dark);
+  border:1px solid var(--border-panel);
+}
+.hp-bar-fill{
+  height:100%;
+  transition:width 0.3s;
+}
+.hp-bar-fill.high{background:#40a040}
+.hp-bar-fill.med{background:#c0a030}
+.hp-bar-fill.low{background:#c03030}
+
+.unit-stats{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:6px;
+  padding:0 10px 10px;
+}
+.stat-box{
+  background:var(--bg-dark);
+  border:1px solid var(--border-panel);
+  padding:8px 4px;
+  text-align:center;
+}
+.stat-value{
+  font-family:'Press Start 2P',monospace;
+  font-size:12px;
+  color:var(--text-primary);
+  margin-bottom:2px;
+}
+.stat-label{
+  font-size:8px;
+  color:var(--text-muted);
+  letter-spacing:0.5px;
+}
+.unit-status{
+  margin-top:12px;
+  padding:10px;
+  border-top:1px solid var(--border-panel);
+  font-size:11px;
+}
+.status-ready{color:var(--green)}
+.status-done{color:var(--text-muted)}
+.skip-btn{
+  display:block; width:calc(100% - 20px); margin:10px 10px 0; padding:8px;
+  background:transparent; border:2px solid var(--gold-dim);
+  color:var(--gold); font-size:11px; cursor:pointer;
+  transition:all 0.15s;
+}
+.skip-btn:hover{background:var(--bg-panel)}
+.terrain-info{
+  margin:10px;
+  padding:8px;
+  background:var(--bg-dark);
+  font-size:11px;
+  color:var(--text-dim);
+}
+.terrain-name{color:var(--gold);}
+.terrain-bonus{color:var(--green);margin-left:8px;}
+
+/* 地形说明卡 */
+.terrain-card{
+  background:var(--bg-panel);
+  border:2px solid var(--border-panel);
+  padding:0;
+}
+.terrain-list{display:flex;flex-direction:column;gap:4px;padding:8px 10px}
+.terrain-item{
+  display:flex;align-items:center;gap:8px;
+  font-size:11px;color:var(--text-dim);
+}
+.terrain-swatch{
+  width:16px;height:16px;
+  border:1px solid var(--border-panel);
+}
+
+/* legend grid fix */
+.legend-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:6px;
+  font-size:10px;
+  padding:0 10px 10px;
+}
+.legend-item{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  color:var(--text-dim);
+}
+.legend-icon{
+  font-size:12px;
+}
+</style>
+</head>
+<body>
+
+<!-- 顶部标题栏 -->
+<header class="header">
+  <div class="header-left">
+    <div class="game-title">⚔ 断桥之战</div>
+    <div class="turn-badge" id="turnBadge">第 1 回合</div>
+  </div>
+  <div class="header-right">
+    <button class="header-btn" id="speedBtn" onclick="game.toggleSpeed()">1x</button>
+    <button class="header-btn" onclick="location.reload()">↺ 重新开始</button>
+  </div>
+</header>
+
+<!-- 主布局 -->
+<div class="main-layout">
+
+  <!-- 左侧面板 -->
+  <div class="left-panel">
+    <div class="info-card">
+      <div class="info-card-title">任务目标</div>
+      <div class="objective-text" style="font-size:12px;line-height:1.8">
+        红狼帝国入侵蓝狮边境，觊觎矿藏资源<br>
+        蓝方据点：蓝城（DEF+4）<br>
+        红方据点：红城（DEF+4）<br>
+        胜利条件：消灭所有敌军<br>
+        失败条件：我方全灭
+      </div>
+      <div class="legend-grid" style="margin-top:12px">
+        <div class="legend-item"><span class="legend-icon">⚔</span><span>剑&gt;斧&gt;枪&gt;剑</span></div>
+        <div class="legend-item"><span class="legend-icon">🏹</span><span>弓2格·不反击</span></div>
+      </div>
+    </div>
+
+    <div class="log-card">
+      <div class="log-header">
+        <div class="log-title">战斗记录</div>
+        <div class="log-count" id="logCount">0 条</div>
+      </div>
+      <div class="log-scroll" id="logScroll"></div>
+    </div>
+  </div>
+
+  <!-- 棋盘区域 -->
+  <div class="board-area">
+    <div class="board-wrapper">
+      <div class="board-inner">
+        <canvas id="canvas" width="528" height="528"></canvas>
+        <div class="overlay" id="overlay">
+          <div class="overlay-title">火焰纹章：断桥之战</div>
+          <div class="overlay-sub" style="max-width:380px;text-align:center;line-height:1.7;font-size:13px;color:rgba(200,185,160,0.85)">
+            边境矿区争端再起。红狼帝国觊觎蓝狮领地内的珍贵矿藏，率军越境而来。<br>蓝狮王家精锐在矿区前哨布防迎敌——断桥之后，再无退路。
+          </div>
+          <button class="overlay-btn" id="startBtn">开战</button>
+        </div>
+      </div>
+    </div>
+    <div class="turn-controls">
+      <button class="end-turn-btn" id="endTurnBtn" disabled>结束回合</button>
+    </div>
+  </div>
+
+  <!-- 右侧面板 -->
+  <div class="right-panel">
+    <div class="unit-card">
+      <div class="info-card-title">单位详情</div>
+      <div id="unitDetail">
+        <div class="unit-empty">点击我方单位查看详情</div>
+      </div>
+    </div>
+
+    <div class="terrain-card">
+      <div class="info-card-title">地形效果</div>
+      <div class="terrain-list">
+        <div class="terrain-item">
+          <div class="terrain-swatch" style="background:#1a1a1a"></div>
+          <span>平原 — 无加成</span>
+        </div>
+        <div class="terrain-item">
+          <div class="terrain-swatch" style="background:#12141a"></div>
+          <span>平地</span>
+        </div>
+        <div class="terrain-item">
+          <div class="terrain-swatch" style="background:#0d2a1a"></div>
+          <span>森林 — 防御+2，消耗2移动</span>
+        </div>
+        <div class="terrain-item">
+          <div class="terrain-swatch" style="background:#0a1840"></div>
+          <span>蓝城 — 防御+4，消耗3移动</span>
+        </div>
+        <div class="terrain-item">
+          <div class="terrain-swatch" style="background:#2a0a0a"></div>
+          <span>红城 — 防御+4，消耗3移动</span>
+        </div>
+        <div class="terrain-item">
+          <div class="terrain-swatch" style="background:#2a1e0a"></div>
+          <span>桥梁 — 防御+1，消耗1移动</span>
+        </div>
+        <div class="terrain-item">
+          <div class="terrain-swatch" style="background:#081828"></div>
+          <span>河流 — 不可通行</span>
+        </div>
+        <div class="terrain-item">
+          <div class="terrain-swatch" style="background:#2d2830"></div>
+          <span>山脉 — 不可通行</span>
+        </div>
+        <div class="terrain-item">
+          <div class="terrain-swatch" style="background:#1a1820"></div>
+          <span>废墟 — 防御+3，消耗2移动</span>
+        </div>
+        <div class="terrain-item">
+          <div class="terrain-swatch" style="background:#1e1c18"></div>
+          <span>丘陵 — 防御+1，消耗2移动</span>
+        </div>
+        <div class="terrain-item">
+          <div class="terrain-swatch" style="background:#1c1c24"></div>
+          <span>城墙 — 不可通行</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ================================================================
+// 地形 & 常量
+// ================================================================
+const T = { PLAIN:0, FOREST:1, BLUE_CASTLE:2, RED_CASTLE:3, MOUNTAIN:4, RIVER:5, BRIDGE:6, RUINS:7, HILL:8, WALL:9 };
+const TS = 44;
+const WP_KEYS = { SWORD:'sword', AXE:'axe', LANCE:'lance', BOW:'bow' };
+
+const MAP = [
+  [3,0,7,0,0,9,9,0,0,7,0,0],
+  [0,0,0,0,0,9,9,0,0,0,3,0],
+  [0,0,1,1,0,0,0,0,0,0,0,0],
+  [0,8,0,1,0,0,0,0,0,8,0,0],
+  [5,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,1,1,5,0],
+  [0,0,0,0,0,0,0,0,0,0,0,5],
+  [0,8,0,0,0,0,0,0,0,0,0,8],
+  [0,0,0,0,0,0,0,0,0,0,0,0],
+  [2,2,7,0,0,0,0,0,0,7,0,0],
+  [2,2,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,0],
+];
+
+const WP = {
+  SWORD:{n:'剑',i:'⚔',b:'AXE',w:'LANCE',r:1,c:'#4a8bc9'},
+  AXE:  {n:'斧',i:'🪓',b:'LANCE',w:'SWORD',r:1,c:'#a855f7'},
+  LANCE:{n:'枪',i:'🗡',b:'SWORD',w:'AXE', r:1,c:'#4adfa1'},
+  BOW:  {n:'弓',i:'🏹',b:null,  w:null,  r:2,c:'#f59e0b'},
+};
+
+// ================================================================
+// 单位
+// ================================================================
+class Unit {
+  constructor(id,nm,job,wk,hp,ak,df,sp,mv,team,x,y) {
+    this.id=id; this.nm=nm; this.job=job; this.wk=wk;
+    this.mhp=hp; this.hp=hp; this.ak=ak; this.df=df; this.sp=sp; this.mv=mv;
+    this.team=team; this.x=x; this.y=y;
+    this.px=x*TS+22; this.py=y*TS+22;
+    this.spx=this.px; this.spy=this.py;
+    this.tpx=this.px; this.tpy=this.py;
+    this.at=0;
+    this.moved=false; this.acted=false; this.flash=0; this.dead=false; this.attackScale=1;
+    this.bob=Math.random()*Math.PI*2;
+  }
+  get wp() { return WP[this.wk]; }
+  get wkClass() { return WP_KEYS[this.wk]; }
+  get done() { return this.acted; }
+  get isPlayer() { return this.team==='p'; }
+  get terrainBonus() {
+    const t=MAP[this.y]?.[this.x];
+    return t===T.FOREST?2:(t===T.BLUE_CASTLE||t===T.RED_CASTLE)?4:(t===T.MOUNTAIN)?2:(t===T.BRIDGE)?1:(t===T.RUINS)?3:(t===T.HILL)?1:0;
+  }
+  reset() { this.moved=false; this.acted=false; }
+  moveTo(x,y) {
+    this.x=x; this.y=y;
+    this.spx=this.px; this.spy=this.py;
+    this.tpx=x*TS+22; this.tpy=y*TS+22;
+    this.at=performance.now();
+  }
+  tick() {
+    if(this.at===0) return;
+    const e=(performance.now()-this.at)/280;
+    if(e>=1){this.px=this.tpx; this.py=this.tpy; this.at=0;}
+    else{const u=1-Math.pow(1-e,3); this.px=this.spx+(this.tpx-this.spx)*u; this.py=this.spy+(this.tpy-this.spy)*u;}
+  }
+}
+
+// ================================================================
+// 伤害
+// ================================================================
+function dmg(a,b){
+  let m=1;
+  const wa=a.wp, wb=b.wp;
+  if(wa.b===wb.wk) m=1.2;
+  else if(wa.w===wb.wk) m=0.8;
+  const v=Math.max(1,Math.floor(a.ak*m-(b.df+b.terrainBonus)));
+  return{v, c:a.sp-b.sp>=4&&Math.random()<0.1};
+}
+
+// ================================================================
+// BFS 移动范围
+// ================================================================
+function bfs(u){
+  const vis={}, res=[], q=[[u.x,u.y,0]]; vis[`${u.x},${u.y}`]=1;
+  const mvCost={};
+  mvCost[T.PLAIN]=1; mvCost[T.FOREST]=2; mvCost[T.BLUE_CASTLE]=3;
+  mvCost[T.RED_CASTLE]=3; mvCost[T.MOUNTAIN]=3; mvCost[T.BRIDGE]=1;
+  mvCost[T.RUINS]=2; mvCost[T.HILL]=2; mvCost[T.WALL]=99;
+  while(q.length){
+    const [x,y,d]=q.shift();
+    if(d>0) res.push([x,y]);
+    if(d>=u.mv) continue;
+    for(const [dx,dy] of[[1,0],[-1,0],[0,1],[0,-1]]){
+      const nx=x+dx, ny=y+dy, k=`${nx},${ny}`;
+      if(vis[k]||nx<0||nx>=12||ny<0||ny>=12) continue;
+      const t=MAP[ny][nx];
+      if(t===T.RIVER||t===T.WALL||t===T.MOUNTAIN) continue;
+      if(game.unitAt(nx,ny)) continue;
+      vis[k]=1; q.push([nx,ny,d+(mvCost[t]||1)]);
+    }
+  }
+  return res;
+}
+
+// ================================================================
+// 攻击范围
+// ================================================================
+function atkRange(u){
+  const r=[], w=u.wp;
+  for(const t of game.units){
+    if(t.dead||t.team===u.team) continue;
+    const d=Math.abs(t.x-u.x)+Math.abs(t.y-u.y);
+    if(d>=1&&d<=w.r) r.push(t);
+  }
+  return r;
+}
+
+// ================================================================
+// 日志
+// ================================================================
+const Log={
+  entries:[],
+  add(html){
+    this.entries.push(html);
+    if(this.entries.length>100) this.entries.shift();
+    const el=document.getElementById('logScroll');
+    const div=document.createElement('div');
+    div.className='log-entry';
+    div.innerHTML=html;
+    el.appendChild(div);
+    el.scrollTop=9999;
+    document.getElementById('logCount').textContent=this.entries.length+' 条';
+  },
+  clear(){
+    this.entries=[];
+    document.getElementById('logScroll').innerHTML='';
+    document.getElementById('logCount').textContent='0 条';
+  }
+};
+
+// ================================================================
+// UI
+// ================================================================
+const UI={
+  getTerrainName(u){
+    const t=MAP[u.y]?.[u.x];
+    if(t===T.FOREST) return '森林';
+    if(t===T.BLUE_CASTLE) return '蓝城';
+    if(t===T.RED_CASTLE) return '红城';
+    if(t===T.MOUNTAIN) return '山脉';
+    if(t===T.RIVER) return '河流';
+    if(t===T.BRIDGE) return '桥梁';
+    if(t===T.RUINS) return '废墟';
+    if(t===T.HILL) return '丘陵';
+    if(t===T.WALL) return '城墙';
+    return '平地';
+  },
+  getTerrainInfo(u){
+    const t=MAP[u.y]?.[u.x];
+    const mvCost={}; mvCost[T.PLAIN]=1; mvCost[T.FOREST]=2; mvCost[T.BLUE_CASTLE]=3;
+    mvCost[T.RED_CASTLE]=3; mvCost[T.MOUNTAIN]=99; mvCost[T.RIVER]=99;
+    mvCost[T.BRIDGE]=1; mvCost[T.RUINS]=2; mvCost[T.HILL]=2; mvCost[T.WALL]=99;
+    const passable=(mvCost[t]||1)<99;
+    return{t, cost:mvCost[t]||1, passable};
+  },
+  showTerrain(x,y){
+    const el=document.getElementById('unitDetail');
+    const name=this.getTerrainName({x,y});
+    const info=this.getTerrainInfo({x,y});
+    const terrainColors={};
+    terrainColors[T.FOREST]='#0d2a1a'; terrainColors[T.BLUE_CASTLE]='#0a1840';
+    terrainColors[T.RED_CASTLE]='#2a0a0a'; terrainColors[T.MOUNTAIN]='#2d2830';
+    terrainColors[T.RIVER]='#081828'; terrainColors[T.BRIDGE]='#2a1e0a';
+    terrainColors[T.RUINS]='#1a1820'; terrainColors[T.HILL]='#1e1c18';
+    terrainColors[T.WALL]='#1c1c24';
+    const color=terrainColors[info.t]||'#1a1a1a';
+    const def={1:'+2（森林）',2:'+4（城堡）',3:'+1（桥梁）',4:'+3（废墟）',5:'+1（丘陵）',0:'无'};
+    let defVal=0, defLabel='';
+    if(info.t===T.FOREST){defVal=2;defLabel='防御 +2，移动消耗2';}
+    else if(info.t===T.BLUE_CASTLE||info.t===T.RED_CASTLE){defVal=4;defLabel='防御 +4，移动消耗3';}
+    else if(info.t===T.BRIDGE){defVal=1;defLabel='防御 +1，移动消耗1';}
+    else if(info.t===T.RUINS){defVal=3;defLabel='防御 +3，移动消耗2';}
+    else if(info.t===T.HILL){defVal=1;defLabel='防御 +1，移动消耗2';}
+    else if(info.t===T.MOUNTAIN||info.t===T.RIVER||info.t===T.WALL){defVal=0;defLabel='不可通行';}
+    else{defLabel='无加成';}
+    el.innerHTML=`
+      <div class="unit-header">
+        <div class="unit-face" style="font-size:18px;border-color:${color}">🗺</div>
+        <div class="unit-info">
+          <div class="unit-name" style="color:var(--gold)">地形信息</div>
+          <div class="unit-class">坐标 (${x}, ${y})</div>
+        </div>
+      </div>
+      <div class="terrain-info">
+        <span class="terrain-name">${name}</span>
+        ${defVal>0?'<span class="terrain-bonus">'+defLabel+'</span>':'<span style="color:var(--text-muted)">'+defLabel+'</span>'}
+      </div>
+      <div style="padding:0 10px 10px;font-size:11px;color:${info.passable?'var(--green)':'var(--red)'}">
+        ${info.passable?'✅ 可通行':'🚫 不可通行'}
+        ${info.passable&&info.t!==T.PLAIN?' · 移动消耗 '+info.cost:''}
+        ${info.t===T.FOREST?' · 回合结束前移动':''}
+      </div>
+    `;
+  },
+  showUnit(u){
+    const el=document.getElementById('unitDetail');
+    if(!u){
+      el.innerHTML='<div class="unit-empty">点击我方单位查看详情</div>'; return;
+    }
+    const w=u.wp, hp=Math.round(u.hp/u.mhp*100);
+    const hpClass=hp>50?'high':hp>25?'med':'low';
+    const faces={'p1':'🧑‍🎤','p2':'🛡️','p3':'🏇','p4':'🏹','e1':'🧙','e2':'⚔️','e3':'🗡️','e4':'🎯'};
+    el.innerHTML=`
+      <div class="unit-header">
+        <div class="unit-face">${faces[u.id]||'?'}</div>
+        <div class="unit-info">
+          <div class="unit-name" style="color:${u.isPlayer?'var(--blue-bright)':'var(--red-bright)'}">${u.nm}</div>
+          <div class="unit-class">${u.job}</div>
+        </div>
+        <div class="weapon-badge ${u.wkClass}">${w.i} ${w.n}</div>
+      </div>
+      <div class="unit-hp-section">
+        <div class="hp-label"><span>HP</span><span>${u.hp} / ${u.mhp}</span></div>
+        <div class="hp-bar-bg"><div class="hp-bar-fill ${hpClass}" style="width:${hp}%"></div></div>
+      </div>
+      <div class="unit-stats">
+        <div class="stat-box"><div class="stat-value">${u.ak}</div><div class="stat-label">攻击</div></div>
+        <div class="stat-box"><div class="stat-value">${u.df}${u.terrainBonus?'+'+u.terrainBonus:''}</div><div class="stat-label">防御</div></div>
+        <div class="stat-box"><div class="stat-value">${u.mv}</div><div class="stat-label">移动</div></div>
+        <div class="stat-box"><div class="stat-value">${u.sp}</div><div class="stat-label">速度</div></div>
+        <div class="stat-box"><div class="stat-value">${w.r}</div><div class="stat-label">射程</div></div>
+        <div class="stat-box"><div class="stat-value" style="font-size:12px">${u.mhp}</div><div class="stat-label">最大HP</div></div>
+      </div>
+      <div class="terrain-info">
+        所在地形：<span class="terrain-name">${this.getTerrainName(u)}</span>
+        ${u.terrainBonus?'<span class="terrain-bonus">防御 +'+u.terrainBonus+'</span>':''}
+      </div>
+      <div class="unit-status">
+        <span class="${u.done?'status-done':'status-ready'}">${u.done?'已行动':'待命中'}</span>
+      </div>
+      ${u.isPlayer&&u.moved&&!u.acted&&typeof game!=='undefined'&&game.atkTargets&&game.atkTargets.length>0?'<button class="skip-btn" onclick="game.skipAction()">跳过本轮攻击</button>':''}
+    `;
+  },
+  updateTurn(txt,isEnemy){
+    const b=document.getElementById('turnBadge');
+    b.textContent=txt;
+    b.className='turn-badge'+(isEnemy?' enemy':'');
+  }
+};
+
+// ================================================================
+// 游戏
+// ================================================================
+const game={
+  phase:'idle', turn:1, units:[],
+  sel:null, mvRange:[], atkTargets:[], busy:false, speed:1,
+  floaters:[], particles:[],
+
+  init(){
+    this.setupUnits();
+    this.bindEvents();
+    Renderer.init();
+    this.loop();
+  },
+
+  setupUnits(){
+    this.units=[
+      new Unit('p1','艾利乌德','领主','SWORD',28,10,5,5,5,'p',1,9),
+      new Unit('p2','海克托尔','重甲','AXE',  38,7,9,2,4,'p',0,9),
+      new Unit('p3','琳',     '骑士','LANCE',22,12,4,9,8,'p',1,10),
+      new Unit('p4','露西亚',  '弓手','BOW',  18,9,2,6,5,'p',0,10),
+      new Unit('e1','黑骑士', '领主','LANCE',28,10,5,5,5,'e',8,1),
+      new Unit('e2','巴里尔', '重甲','AXE',  38,7,9,2,4,'e',9,1),
+      new Unit('e3','佣兵',  '剑士','SWORD',22,12,4,9,8,'e',8,6),
+      new Unit('e4','狙击手', '弓手','BOW',  18,9,2,6,5,'e',9,6),
+    ];
+  },
+
+  bindEvents(){
+    document.getElementById('startBtn').onclick=()=>this.start();
+    document.getElementById('endTurnBtn').onclick=()=>this.endTurn();
+    document.getElementById('canvas').onclick=e=>this.onClick(e);
+  },
+
+  start(){
+    document.getElementById('overlay').classList.add('hidden');
+    this.phase='player'; this.turn=1;
+    this.units.forEach(u=>u.reset());
+    this.sel=null; this.mvRange=[]; this.atkTargets=[];
+    UI.updateTurn('第 1 回合',false);
+    document.getElementById('endTurnBtn').disabled=false;
+    Log.clear();
+    Log.add('<span class="system">⚔ 战斗开始</span>');
+  },
+
+  onClick(e){
+    if(this.phase!=='player'||this.busy) return;
+    const r=document.getElementById('canvas').getBoundingClientRect();
+    const sx=528/r.width, sy=528/r.height;
+    const gx=Math.floor((e.clientX-r.left)*sx/TS);
+    const gy=Math.floor((e.clientY-r.top)*sy/TS);
+    if(gx<0||gx>=12||gy<0||gy>=12) return;
+    this.click(gx,gy);
+  },
+
+  click(gx,gy){
+    const u=this.unitAt(gx,gy);
+    if(this.sel){
+      // 点击已选中的己方单位 → 取消选中
+      if(u&&u===this.sel){
+        this.sel=null; this.mvRange=[]; this.atkTargets=[]; UI.showUnit(null); return;
+      }
+      if(u&&this.atkTargets.includes(u)){ this.attack(this.sel,u); this.sel=null; this.mvRange=[]; this.atkTargets=[]; return; }
+      if(this.mvRange.some(([mx,my])=>mx===gx&&my===gy)){ this.move(gx,gy); return; }
+      if(u&&u.isPlayer&&!u.dead&&!u.done){ this.sel=u; this.mvRange=u.moved?[]:bfs(u); this.atkTargets=u.acted?[]:atkRange(u); UI.showUnit(u); return; }
+      this.sel=null; this.mvRange=[]; this.atkTargets=[]; UI.showUnit(null); this.checkAllDone(); return;
+    }
+    if(u&&u.isPlayer&&!u.dead){
+      if(u.done){Log.add(`<span class="system">${u.nm} 已行动</span>`); this.sel=null; this.mvRange=[]; this.atkTargets=[]; UI.showUnit(u); this.checkAllDone(); return;}
+      this.sel=u; this.mvRange=u.moved?[]:bfs(u); this.atkTargets=u.acted?[]:atkRange(u); UI.showUnit(u);
+    } else if(u&&!u.isPlayer&&!u.dead){
+      UI.showUnit(u);
+    } else {
+      // 空地 → 显示地形信息
+      UI.showTerrain(gx,gy);
+    }
+  },
+
+  move(gx,gy){
+    const u=this.sel;
+    u.moveTo(gx,gy); u.moved=true;
+    this.mvRange=[]; this.atkTargets=atkRange(u);
+    if(this.atkTargets.length===0){u.acted=true; Log.add(`<span class="attacker">${u.nm}</span> 移动至 (${gx},${gy})`);}
+    else{Log.add(`<span class="attacker">${u.nm}</span> 移动至 (${gx},${gy})，可攻击`);}
+    this.checkAllDone();
+  },
+
+  attack(at,df){
+    this.busy=true; at.acted=true; at.attackScale=1.5; df.attackScale=1.5;
+    const r=dmg(at,df);
+    const finalDmg=r.c ? r.v*2 : r.v;
+    Renderer.addFloater(df.x,df.y,finalDmg,r.c);
+    Renderer.addParticles(df.x,df.y,r.c?'#fbbf24':'#ef4444',r.c?8:4);
+    df.flash=5; df.hp=Math.max(0,df.hp-finalDmg);
+    Log.add(`<span class="attacker">${at.nm}</span> 攻击 <span class="defender">${df.nm}</span> <span class="damage">-${finalDmg}</span>${r.c?' <span class="crit">💥</span>':''}`);
+    const canCt=df.wp.r>=at.wp.r&&!r.c&&df.hp>0;
+    setTimeout(()=>{
+      if(canCt){
+        const rc=dmg(df,at);
+        const rcDmg=rc.c ? rc.v*2 : rc.v;
+        Renderer.addFloater(at.x,at.y,rcDmg,rc.c);
+        Renderer.addParticles(at.x,at.y,'#fff',3);
+        at.flash=5; at.attackScale=1.5; at.hp=Math.max(0,at.hp-rcDmg);
+        Log.add(`<span class="defender">${df.nm}</span> 反击 <span class="damage">-${rcDmg}</span>${rc.c?' <span class="crit">💥</span>':''}`);
+      }
+      if(df.hp<=0&&!df.dead){df.dead=true; Log.add(`<span class="death">${df.nm} 生命归零</span>`);}
+      if(at.hp<=0&&!at.dead){at.dead=true; Log.add(`<span class="death">${at.nm} 生命归零</span>`);}
+      this.sel=null; this.mvRange=[]; this.atkTargets=[]; this.busy=false;
+      this.checkAllDone(); this.checkEnd();
+    },canCt?350/this.speed:100/this.speed);
+  },
+
+  checkAllDone(){
+    const alive=this.units.filter(u=>u.isPlayer&&!u.dead);
+    // 按钮始终可点击，让玩家可以手动结束回合（即使所有单位都行动完了）
+    document.getElementById('endTurnBtn').disabled=alive.length===0;
+  },
+
+  checkEnd(){
+    const p=this.units.filter(u=>u.isPlayer&&!u.dead);
+    const e=this.units.filter(u=>!u.isPlayer&&!u.dead);
+    if(e.length===0){this.phase='win'; this.showEnd('🏆 胜利','边境矿脉得以保全');}
+    else if(p.length===0){this.phase='lose'; this.showEnd('💀 败北','矿区落入红狼之手');}
+  },
+
+  showEnd(t,s){
+    const ov=document.getElementById('overlay');
+    ov.innerHTML=`<div class="overlay-title">${t}</div><div class="overlay-sub">${s}</div><button class="overlay-btn" onclick="location.reload()">重来</button>`;
+    ov.classList.remove('hidden');
+  },
+
+  toggleSpeed(){
+    const speeds=[1,0.25,0.1];
+    const labels=['1x','0.25x','0.1x'];
+    const i=speeds.indexOf(this.speed);
+    this.speed=speeds[(i+1)%speeds.length];
+    document.getElementById('speedBtn').textContent=labels[(i+1)%labels.length];
+  },
+
+  endTurn(){
+    if(this.phase!=='player'||this.busy) return;
+    this.sel=null; this.mvRange=[]; this.atkTargets=[]; UI.showUnit(null);
+    this.phase='enemy';
+    UI.updateTurn('敌方行动...',true);
+    document.getElementById('endTurnBtn').disabled=true;
+    setTimeout(()=>this.runAI(),600);
+  },
+
+  skipAction(){
+    if(!this.sel||!this.sel.isPlayer||this.sel.acted) return;
+    this.sel.acted=true;
+    Log.add(`<span class="system">${this.sel.nm} 跳过攻击</span>`);
+    this.sel=null; this.mvRange=[]; this.atkTargets=[]; this.checkAllDone();
+  },
+
+  runAI(){
+    const enemies=this.units.filter(u=>!u.isPlayer&&!u.dead);
+    const players=this.units.filter(u=>u.isPlayer&&!u.dead);
+    if(!enemies.length||!players.length){this.checkEnd(); return;}
+    let i=0;
+    const next=()=>{
+      if(i>=enemies.length){this.afterAI(); return;}
+      const en=enemies[i++];
+      if(en.dead){next(); return;}
+      const targets=atkRange(en).filter(t=>!t.dead);
+      if(targets.length){targets.sort((a,b)=>a.hp-b.hp); this.attackAI(en,targets[0],next);}
+      else{
+        const mv=bfs(en);
+        let best=null, bestScore=Infinity;
+        mv.forEach(([mx,my])=>{
+          players.forEach(p=>{
+            const d=Math.abs(p.x-mx)+Math.abs(p.y-my);
+            if(d<=en.wp.r){
+              const sc=d-(p.hp<p.mhp*0.3?10:0);
+              if(sc<bestScore){bestScore=sc; best=[mx,my,p];}
+            }
+          });
+        });
+        if(best){
+          en.moveTo(best[0],best[1]); en.moved=true;
+          setTimeout(()=>{
+            const t2=atkRange(en).filter(x=>!x.dead);
+            if(t2.length){t2.sort((a,b)=>a.hp-b.hp); en.acted=true; this.attackAI(en,t2[0],next);}
+            else{en.acted=true; next();}
+          },350);
+        }else{en.moved=true; en.acted=true; next();}
+      }
+    };
+    next();
+  },
+
+  attackAI(at,df,cb){
+    at.acted=true; at.attackScale=1.5; df.attackScale=1.5;
+    const r=dmg(at,df);
+    const finalDmg=r.c ? r.v*2 : r.v;
+    Renderer.addFloater(df.x,df.y,finalDmg,r.c);
+    Renderer.addParticles(df.x,df.y,r.c?'#fbbf24':'#ef4444',r.c?8:4);
+    df.flash=5; df.hp=Math.max(0,df.hp-finalDmg);
+    Log.add(`<span class="defender">${at.nm}</span> 攻击 <span class="attacker">${df.nm}</span> <span class="damage">-${finalDmg}</span>${r.c?' <span class="crit">💥</span>':''}`);
+    if(df.hp<=0&&!df.dead){df.dead=true; Log.add(`<span class="death">${df.nm} 生命归零</span>`);}
+    const canCt=df.wp.r>=at.wp.r&&!r.c&&df.hp>0;
+    setTimeout(()=>{
+      if(canCt){
+        const rc=dmg(df,at);
+        const rcFinalDmg=rc.c ? rc.v*2 : rc.v;
+        Renderer.addFloater(at.x,at.y,rcFinalDmg,rc.c);
+        Renderer.addParticles(at.x,at.y,'#fff',3);
+        at.flash=5; at.attackScale=1.5; at.hp=Math.max(0,at.hp-rcFinalDmg);
+        Log.add(`<span class="attacker">${df.nm}</span> 反击 <span class="damage">-${rcFinalDmg}</span>${rc.c?' <span class="crit">💥</span>':''}`);
+        if(at.hp<=0&&!at.dead){at.dead=true; Log.add(`<span class="death">${at.nm} 生命归零</span>`);}
+      }
+      setTimeout(cb,250/this.speed);
+    },canCt?350/this.speed:100/this.speed);
+  },
+
+  afterAI(){
+    this.checkEnd();
+    if(this.phase!=='enemy') return;
+    this.phase='player'; this.turn++;
+    this.units.forEach(u=>u.reset());
+    UI.updateTurn(`第 ${this.turn} 回合`,false);
+    document.getElementById('endTurnBtn').disabled=false;
+    Log.add('<span class="turn-marker">— 第 '+this.turn+' 回合 —</span>');
+  },
+
+  unitAt(x,y){return this.units.find(u=>!u.dead&&u.x===x&&u.y===y)||null},
+
+  loop(){
+    const t=performance.now()/1000;
+    Renderer.clear();
+    Renderer.map(t);
+    if(this.mvRange.length) Renderer.mvRange(this.mvRange);
+    if(this.atkTargets.length) Renderer.atkRange(this.atkTargets);
+    this.units.forEach(u=>{u.tick(); Renderer.unit(u,this.sel===u,t);});
+    Renderer.particles();
+    Renderer.floaters();
+    this.units.forEach(u=>{
+      if(u.flash>0) u.flash-=this.speed;
+      if(u.attackScale>1){u.attackScale=Math.max(1,u.attackScale-0.05*this.speed);}
+    });
+    requestAnimationFrame(()=>this.loop());
+  }
+};
+
+// ================================================================
+// 渲染
+// ================================================================
+const Renderer={
+  canvas:null, ctx:null,
+  _ps:[], _ft:[],
+  spriteSheet:null, spriteReady:false,
+  // Sprite 索引映射 (32x32 per sprite, 512x96 sheet: 16列x3行)
+  // 地形(行0) | 蓝队单位(行1) | 红队单位(行2)
+  SPRITE:{
+    T_FOREST:{x:0,y:0}, T_RIVER:{x:32,y:0}, T_MOUNTAIN:{x:64,y:0},
+    T_RUINS:{x:96,y:0}, T_HILL:{x:128,y:0}, T_WALL:{x:160,y:0},
+    T_BRIDGE:{x:192,y:0}, T_PLAIN:{x:224,y:0},
+    T_BLUE_CASTLE:{x:256,y:0}, T_RED_CASTLE:{x:288,y:0},
+    // 蓝队单位 (行1, y=32)
+    U_LORD_B:{x:0,y:32}, U_ARMOR_B:{x:32,y:32}, U_KNIGHT_B:{x:64,y:32},
+    U_ARCHER_B:{x:96,y:32}, U_SWORDSMAN_B:{x:128,y:32}, U_AXEMAN_B:{x:160,y:32},
+    U_LANCEMAN_B:{x:192,y:32}, U_ELF_B:{x:224,y:32},
+    // 红队单位 (行2, y=64)
+    U_LORD_R:{x:0,y:64}, U_ARMOR_R:{x:32,y:64}, U_KNIGHT_R:{x:64,y:64},
+    U_ARCHER_R:{x:96,y:64}, U_SWORDSMAN_R:{x:128,y:64}, U_AXEMAN_R:{x:160,y:64},
+    U_LANCEMAN_R:{x:192,y:64}, U_ELF_R:{x:224,y:64},
+  },
+  init(){
+    this.canvas=document.getElementById('canvas'); this.ctx=this.canvas.getContext('2d');
+    this.spriteSheet=new Image();
+    this.spriteSheet.onload=()=>{this.spriteReady=true;};
+    this.spriteSheet.src='sprites/terrain-units-sheet-v4.png?v='+Date.now();
+  },
+  clear(){this.ctx.clearRect(0,0,528,528);},
+  drawSprite(key,dx,dy,size=32){
+    if(!this.spriteReady) return;
+    const s=this.SPRITE[key];
+    if(!s) return;
+    this.ctx.drawImage(this.spriteSheet,s.x,s.y,32,32,dx,dy,size,size);
+  },
+  map(t){
+    const c=this.ctx;
+    // 纯色底（统一深色）
+    c.fillStyle='#1a1c22';
+    c.fillRect(0,0,this.canvas.width,this.canvas.height);
+    // 网格线
+    c.strokeStyle='rgba(255,255,255,.015)'; c.lineWidth=1;
+    for(let y=0;y<=12;y++){ c.beginPath(); c.moveTo(0,y*TS); c.lineTo(528,y*TS); c.stroke(); }
+    for(let x=0;x<=12;x++){ c.beginPath(); c.moveTo(x*TS,0); c.lineTo(x*TS,528); c.stroke(); }
+    // Sprite 图标（充满 44x44 格子）
+    if(this.spriteReady){
+      for(let y=0;y<12;y++)for(let x=0;x<12;x++){
+        const g=MAP[y][x];
+        const tx=x*TS, ty=y*TS;
+        let key=null;
+        if(g===T.FOREST) key='T_FOREST';
+        else if(g===T.BLUE_CASTLE) key='T_BLUE_CASTLE';
+        else if(g===T.RED_CASTLE) key='T_RED_CASTLE';
+        else if(g===T.MOUNTAIN) key='T_MOUNTAIN';
+        else if(g===T.RIVER) key='T_RIVER';
+        else if(g===T.BRIDGE) key='T_BRIDGE';
+        else if(g===T.RUINS) key='T_RUINS';
+        else if(g===T.HILL) key='T_HILL';
+        else if(g===T.WALL) key='T_WALL';
+        else if(g===T.PLAIN) key='T_PLAIN';
+        if(key) this.drawSprite(key,tx,ty,TS);
+      }
+    }
+    // 地形暗色叠加（增加前景/背景层次感）
+    c.fillStyle='rgba(0,0,0,0.18)';
+    c.fillRect(0,0,this.canvas.width,this.canvas.height);
+  },
+  mvRange(tiles){
+    const c=this.ctx;
+    c.fillStyle='rgba(220,50,50,.12)'; c.strokeStyle='rgba(220,50,50,.40)';
+    tiles.forEach(([x,y])=>{c.fillRect(x*TS+3,y*TS+3,TS-6,TS-6);c.strokeRect(x*TS+3,y*TS+3,TS-6,TS-6);});
+  },
+  atkRange(units){
+    const c=this.ctx;
+    units.forEach(u=>{
+      c.fillStyle='rgba(239,68,68,.12)'; c.strokeStyle='rgba(239,68,68,.45)';
+      c.fillRect(u.x*TS+3,u.y*TS+3,TS-6,TS-6); c.strokeRect(u.x*TS+3,u.y*TS+3,TS-6,TS-6);
+    });
+  },
+  unit(u,sel,t){
+    if(u.dead) return;
+    const c=this.ctx;
+    const bob=Math.sin(t*2+u.bob)*1.5;
+    const px=u.px, py=u.py+bob;
+    const sc=u.attackScale||1;
+    c.save();
+    c.translate(px,py); c.scale(sc,sc); c.translate(-px,-py);
+
+    // shadow
+    c.fillStyle='rgba(0,0,0,.3)'; c.beginPath(); c.ellipse(px,py+16,12,3,0,0,7); c.fill();
+
+    // hit flash
+    if(u.flash>0){c.fillStyle=`rgba(255,255,255,${u.flash*0.15})`;c.beginPath();c.arc(px,py,20,0,7);c.fill();}
+
+    // breathing selection border
+    if(sel){
+      const pulse=0.5+Math.sin(t*4)*0.5;
+      c.strokeStyle=`rgba(251,191,36,${pulse})`; c.lineWidth=3;
+      c.beginPath(); c.arc(px,py,20,0,7); c.stroke();
+      c.shadowColor='#fbbf24'; c.shadowBlur=15;
+    }
+
+    // bg circle
+    c.fillStyle='#0d1117'; c.beginPath(); c.arc(px,py,17,0,7); c.fill();
+
+    // aura for units not yet acted
+    if(!u.done){
+      c.fillStyle=u.isPlayer?'rgba(59,130,246,.15)':'rgba(239,68,68,.15)';
+      c.beginPath(); c.arc(px,py,16,0,7); c.fill();
+    }
+
+    // job color ring (inside unit circle, above aura)
+    const jobRingColor=u.job==='领主'?'#fbbf24':u.job==='重甲'?'#9ca3af':u.job==='骑士'?'#60a5fa':'#f59e0b';
+    c.strokeStyle=jobRingColor; c.lineWidth=3; c.globalAlpha=0.6;
+    c.beginPath(); c.arc(px,py,14,0,7); c.stroke();
+    c.globalAlpha=1;
+
+    // border
+    c.strokeStyle=u.done?'#374151':(u.isPlayer?'#3b82f6':'#ef4444'); c.lineWidth=2;
+    c.beginPath(); c.arc(px,py,16,0,7); c.stroke(); c.shadowBlur=0;
+
+    // sprite icon or fallback geometric icon
+    if(this.spriteReady){
+      let key=null;
+      const j=u.job, p=u.isPlayer;
+      if(j==='领主') key=p?'U_LORD_B':'U_LORD_R';
+      else if(j==='重甲') key=p?'U_ARMOR_B':'U_ARMOR_R';
+      else if(j==='骑士') key=p?'U_KNIGHT_B':'U_KNIGHT_R';
+      else if(j==='弓手') key=p?'U_ARCHER_B':'U_ARCHER_R';
+      else if(j==='剑士') key=p?'U_SWORDSMAN_B':'U_SWORDSMAN_R';
+      else if(j==='斧兵') key=p?'U_AXEMAN_B':'U_AXEMAN_R';
+      else if(j==='枪兵') key=p?'U_LANCEMAN_B':'U_LANCEMAN_R';
+      else if(j==='精灵') key=p?'U_ELF_B':'U_ELF_R';
+      if(key) this.drawSprite(key,px-22,py-22,TS);
+    } else {
+      this._drawUnitIcon(c,u,px,py);
+    }
+
+    // HP bar (thicker)
+    const hp=u.hp/u.mhp;
+    c.fillStyle='#1f2937'; c.fillRect(px-12,py+21,24,4);
+    c.fillStyle=hp>0.5?'#22c55e':hp>0.25?'#eab308':'#ef4444';
+    c.fillRect(px-12,py+21,24*hp,4);
+    c.strokeStyle='rgba(255,255,255,.1)'; c.lineWidth=0.5;
+    c.strokeRect(px-12,py+21,24,4);
+
+    // acted marker (triangle below HP bar)
+    if(u.done){
+      c.fillStyle='#374151';
+      c.beginPath(); c.moveTo(px,py+29); c.lineTo(px-4,py+33); c.lineTo(px+4,py+33); c.closePath(); c.fill();
+    }
+
+    c.restore();
+  },
+  _drawUnitIcon(c,u,px,py){
+    const j=u.job, wk=u.wk, p=u.isPlayer;
+    const base=p?'#60a5fa':'#f87171';
+    const acc=p?'#fbbf24':'#fcd34d';
+    c.lineWidth=1.5; c.lineCap='round'; c.lineJoin='round';
+
+    if(j==='领主'||j==='剑士'){
+      // shield (scaled up ~30%)
+      c.fillStyle=base; c.strokeStyle=acc; c.lineWidth=1.2;
+      c.beginPath();
+      c.moveTo(px-9,py-10); c.lineTo(px+9,py-10);
+      c.lineTo(px+9,py+3); c.lineTo(px,py+13); c.lineTo(px-9,py+3);
+      c.closePath(); c.fill(); c.stroke();
+      c.strokeStyle=acc; c.lineWidth=1.2;
+      c.beginPath(); c.moveTo(px,py-6); c.lineTo(px,py+8); c.stroke();
+      c.beginPath(); c.moveTo(px-5,py); c.lineTo(px+5,py); c.stroke();
+    } else if(j==='重甲'){
+      // armor circle (scaled up)
+      c.fillStyle='#4b5563'; c.strokeStyle=base; c.lineWidth=2;
+      c.beginPath(); c.arc(px,py,15,0,7); c.fill(); c.stroke();
+      // axe
+      c.strokeStyle=acc; c.lineWidth=2.5;
+      c.beginPath(); c.moveTo(px,py-11); c.lineTo(px,py+11); c.stroke();
+      c.fillStyle=acc;
+      c.beginPath(); c.moveTo(px-10,py-7); c.lineTo(px,py-1); c.lineTo(px+10,py-7); c.closePath(); c.fill();
+    } else if(j==='骑士'){
+      // triangle (scaled up)
+      c.fillStyle=base; c.strokeStyle=acc; c.lineWidth=1.2;
+      c.beginPath(); c.moveTo(px,py-14); c.lineTo(px+14,py+11); c.lineTo(px-14,py+11); c.closePath(); c.fill(); c.stroke();
+      // lance
+      c.strokeStyle=acc; c.lineWidth=1.8;
+      c.beginPath(); c.moveTo(px,py-18); c.lineTo(px,py+7); c.stroke();
+      c.fillStyle=acc;
+      c.beginPath(); c.moveTo(px-4,py-18); c.lineTo(px,py-26); c.lineTo(px+4,py-18); c.closePath(); c.fill();
+    } else if(j==='弓手'){
+      // diamond (scaled up)
+      c.fillStyle=base; c.strokeStyle=acc; c.lineWidth=1.2;
+      c.beginPath(); c.moveTo(px,py-15); c.lineTo(px+11,py); c.lineTo(px,py+15); c.lineTo(px-11,py); c.closePath(); c.fill(); c.stroke();
+      // bow arc
+      c.strokeStyle=acc; c.lineWidth=1.8;
+      c.beginPath(); c.arc(px,py,9,-Math.PI*0.7,-Math.PI*0.3); c.stroke();
+      c.beginPath();
+      c.moveTo(px+9*Math.cos(-Math.PI*0.7),py+9*Math.sin(-Math.PI*0.7));
+      c.lineTo(px+9*Math.cos(-Math.PI*0.3),py+9*Math.sin(-Math.PI*0.3)); c.stroke();
+    }
+  },
+  floaters(){
+    this._ft=this._ft.filter(f=>{
+      f.y+=f.vy; f.vy*=0.92; f.life--;
+      const a=f.life/f.ml;
+      this.ctx.save(); this.ctx.globalAlpha=a;
+      this.ctx.font=(f.c?'bold 14px':'bold 11px')+' sans-serif';
+      this.ctx.textAlign='center';
+      this.ctx.fillStyle='#000'; this.ctx.fillText((f.c?'💥 ':'')+'-'+f.v,f.x+1,f.y+1);
+      this.ctx.fillStyle=f.c?'#fbbf24':'#fff'; this.ctx.fillText((f.c?'💥 ':'')+'-'+f.v,f.x,f.y);
+      this.ctx.restore();
+      return f.life>0;
+    });
+  },
+  addFloater(x,y,v,c){ this._ft.push({x:x*TS+22,y:y*TS+22,vy:-2.5,v,c,life:40,ml:40}); },
+  particles(){
+    this._ps=this._ps.filter(p=>{
+      p.x+=p.vx; p.y+=p.vy; p.vy+=0.15; p.life--;
+      this.ctx.globalAlpha=p.life/30;
+      this.ctx.fillStyle=p.c; this.ctx.beginPath(); this.ctx.arc(p.x,p.y,p.s,0,7); this.ctx.fill();
+      this.ctx.globalAlpha=1;
+      return p.life>0;
+    });
+  },
+  addParticles(x,y,col,ct){ for(let i=0;i<ct;i++) this._ps.push({x:x*TS+22,y:y*TS+22,vx:(Math.random()-.5)*5,vy:(Math.random()-.5)*5,life:25+Math.random()*10,c:col,s:Math.random()*2.5+.5}); },
+};
+
+game.init();
+</script>
+</body>
+</html>
