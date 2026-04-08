@@ -1034,6 +1034,7 @@ const game={
     this.phase='enemy';
     UI.updateTurn('敌方行动...',true);
     document.getElementById('endTurnBtn').disabled=true;
+    Log.add('<span class="turn-marker">══ 敌方回合 ══</span>');
     setTimeout(()=>this.runAI(),600);
   },
 
@@ -1054,7 +1055,11 @@ const game={
       const en=enemies[i++];
       if(en.dead){next(); return;}
       const targets=atkRange(en).filter(t=>!t.dead);
-      if(targets.length){targets.sort((a,b)=>a.hp-b.hp); this.attackAI(en,targets[0],next);}
+      if(targets.length){
+        targets.sort((a,b)=>a.hp-b.hp);
+        Log.add(`<span class="defender">[红]</span> <span class="system">${en.nm}：瞄准最弱者 → ${targets[0].nm}</span>`);
+        this.attackAI(en,targets[0],next);
+      }
       else{
         const mv=bfs(en);
         let best=null, bestScore=Infinity;
@@ -1068,6 +1073,7 @@ const game={
           });
         });
         if(best){
+          Log.add(`<span class="defender">[红]</span> <span class="system">${en.nm}：向(${best[0]},${best[1]})移动</span>`);
           en.moveTo(best[0],best[1]); en.moved=true;
           setTimeout(()=>{
             const t2=atkRange(en).filter(x=>!x.dead);
@@ -1097,7 +1103,7 @@ const game={
         Renderer.addFloater(at.x,at.y,rcFinalDmg,rc.c);
         Renderer.addParticles(at.x,at.y,'#fff',3);
         at.flash=5; at.attackScale=1.5; at.hp=Math.max(0,at.hp-rcFinalDmg);
-        Log.add(`<span class="attacker">${df.nm}</span> 反击 <span class="damage">-${rcFinalDmg}</span>${rc.c?' <span class="crit">💥</span>':''}`);
+        Log.add(`<span class="attacker">${df.nm}</span> 反击 <span class="defender">${at.nm}</span> <span class="damage">-${rcFinalDmg}</span>${rc.c?' <span class="crit">💥</span>':''}`);
         if(at.hp<=0&&!at.dead){at.dead=true; Log.add(`<span class="death">${at.nm} 生命归零</span>`);}
       }
       setTimeout(cb,250/this.speed);
