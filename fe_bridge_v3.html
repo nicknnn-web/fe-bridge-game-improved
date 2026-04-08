@@ -247,6 +247,11 @@ canvas{
   background:var(--gold);
   color:var(--bg-deep);
 }
+.end-stats{display:flex;gap:24px;justify-content:center;margin:16px 0}
+.end-stat{text-align:center}
+.end-stat-val{font-family:'Press Start 2P',monospace;font-size:20px;display:block}
+.end-stat-lbl{font-size:11px;color:var(--text-dim);display:block;margin-top:4px}
+.end-perfect{font-family:'Press Start 2P',monospace;font-size:10px;color:var(--gold);text-align:center;margin-bottom:12px;text-shadow:0 0 10px var(--gold)}
 
 /* 回合结束按钮 */
 .turn-controls{
@@ -967,7 +972,23 @@ const game={
 
   showEnd(t,s){
     const ov=document.getElementById('overlay');
-    ov.innerHTML=`<div class="overlay-title">${t}</div><div class="overlay-sub">${s}</div><button class="overlay-btn" onclick="location.reload()">重来</button>`;
+    const pAlive=this.units.filter(u=>u.isPlayer&&!u.dead).length;
+    const eKilled=4-this.units.filter(u=>!u.isPlayer&&!u.dead).length;
+    const isWin=t.includes('胜利');
+    const perfect=isWin&&pAlive===4;
+    const statsHtml=`
+      <div class="end-stats">
+        <div class="end-stat"><span class="end-stat-val" style="color:#60a5fa">${pAlive}</span><span class="end-stat-lbl">/ 4 我方生还</span></div>
+        <div class="end-stat"><span class="end-stat-val" style="color:#f87171">${eKilled}</span><span class="end-stat-lbl"> 敌方击杀</span></div>
+      </div>
+      ${perfect?'<div class="end-perfect">⭐ 完美胜利 ⭐</div>':''}
+    `;
+    ov.innerHTML=`
+      <div class="overlay-title">${t}</div>
+      <div class="overlay-sub">${s}</div>
+      ${statsHtml}
+      <button class="overlay-btn" onclick="location.reload()">重来</button>
+    `;
     ov.classList.remove('hidden');
   },
 
