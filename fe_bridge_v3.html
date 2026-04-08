@@ -1207,6 +1207,22 @@ const Renderer={
     // 地形暗色叠加（增加前景/背景层次感）
     c.fillStyle='rgba(0,0,0,0.18)';
     c.fillRect(0,0,this.canvas.width,this.canvas.height);
+    // 地形防御加成数字（只对有加成的地形显示）
+    const bonusMap={};
+    bonusMap[T.FOREST]=2; bonusMap[T.BLUE_CASTLE]=4; bonusMap[T.RED_CASTLE]=4;
+    bonusMap[T.RUINS]=3; bonusMap[T.HILL]=1; bonusMap[T.BRIDGE]=1;
+    c.font='bold 10px "Press Start 2P",monospace';
+    c.textAlign='right';
+    for(let y=0;y<12;y++)for(let x=0;x<12;x++){
+      const g=MAP[y][x];
+      const bv=bonusMap[g];
+      if(bv){
+        c.fillStyle='rgba(0,0,0,0.5)';
+        c.fillText(`+${bv}`,x*TS+TS-5,y*TS+TS-5);
+        c.fillStyle='rgba(255,255,255,0.85)';
+        c.fillText(`+${bv}`,x*TS+TS-6,y*TS+TS-6);
+      }
+    }
   },
   mvRange(tiles){
     const c=this.ctx;
