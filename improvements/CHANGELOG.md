@@ -4,6 +4,38 @@
 
 ---
 
+## [v0.4.0] - 2026-04-08
+
+### 改进 #8：AI行动日志增强
+- **类型**：UI/UX
+- **需求文档**：`improvements/2026-04-08-ai-log-requirements.md`
+- **改动说明**：敌方回合显示分隔符，AI瞄准/移动增加战术说明日志
+- **Commit**：`b290b16`
+
+### 改进 #7：速度按钮视觉增强
+- **类型**：UI/UX
+- **需求文档**：`improvements/2026-04-08-speed-control-requirements.md`
+- **改动说明**：速度按钮三档文字+激活金色边框，切换颜色区分
+- **Commit**：`f1e712a`
+
+### 改进 #6：地形悬停预览
+- **类型**：交互体验
+- **需求文档**：`improvements/2026-04-08-terrain-preview-requirements.md`
+- **改动说明**：鼠标悬停格子显示地形信息+金色脉冲边框，80ms节流
+- **Commit**：`dada4bd`
+
+### 改进 #5：胜利/失败界面美化
+- **类型**：UI/UX
+- **需求文档**：`improvements/2026-04-08-end-screen-requirements.md`
+- **改动说明**：胜利/失败界面显示生还数/击杀数，完美胜利特殊文案
+- **Commit**：`3dec736`
+
+### 改进 #4：单位详情面板增强
+- **类型**：UI/UX
+- **需求文档**：`improvements/2026-04-08-unit-panel-enhance-requirements.md`
+- **改动说明**：属性增加图标，防御显示4(+2)格式，状态标签加●前缀
+- **Commit**：`3ddab5c`
+
 ## [v0.3.0] - 2026-04-08
 
 ### 改进 #3：战斗日志超过20条自动折叠
