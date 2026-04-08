@@ -42,7 +42,7 @@
 - 判断：独立完成 or 需拆分多轮
 
 ### 步骤 5：撰写改进需求文档
-- 路径：`improvements/YYYY-MM-DD-<改进点>-requirements.md`
+- 路径：`improvements/logs/YYYY-MM-DD-<改进点>-requirements.md`
 - 内容：目标、现状分析、改动范围、验收标准
 - 遵循 OpenSpec 规范格式
 
@@ -120,10 +120,12 @@ chore: 构建/工具变更
 fe-bridge-game/
 ├── improvements/
 │   ├── FIRE-DEMO-IMPROVEMENT-SPEC.md   # 本规范
-│   ├── YYYY-MM-DD-*-requirements.md    # 需求文档
+│   ├── logs/                            # 改进日志
+│   │   ├── CHANGELOG.md                 # 版本更新日志
+│   │   └── YYYY-MM-DD-*-requirements.md  # 需求文档
 │   └── screenshots/                     # 测试截图
-├── SPEC.md                             # 游戏规格文档
-└── fe_bridge_v3.html                   # 游戏主文件
+├── SPEC.md                              # 游戏规格文档
+└── fe_bridge_v3.html                    # 游戏主文件
 ```
 
 ---
