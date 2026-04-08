@@ -4,7 +4,46 @@
 
 ---
 
+## [v0.5.0] - 2026-04-08
+
+### 改进 #15：战场格子呼吸动画
+- **类型**：视觉效果
+- **需求文档**：`improvements/logs/2026-04-08-grid-breathing-requirements.md`
+- **改动说明**：网格线透明度随时间在0.006-0.018间正弦波动
+
+### 改进 #14：HP条颜色平滑渐变
+- **类型**：视觉效果
+- **需求文档**：`improvements/logs/2026-04-08-hp-gradient-requirements.md`
+- **改动说明**：HP条颜色在绿/黄/红之间线性插值平滑过渡，非三档跳变
+
+### 改进 #13：暴击伤害数字弹跳特效
+- **类型**：视觉效果
+- **需求文档**：`improvements/logs/2026-04-08-crit-floater-requirements.md`
+- **改动说明**：暴击伤害数字带弹跳放大动画，普通伤害不变
+
+### 改进 #12：回合开始公告
+- **类型**：UI/UX
+- **需求文档**：`improvements/logs/2026-04-08-round-banner-requirements.md`
+- **改动说明**：回合/敌方回合开始时画面中央显示公告条，fade in+保持+fade out
+
+### 改进 #11：单位选中粒子特效
+- **类型**：视觉效果
+- **需求文档**：`improvements/logs/2026-04-08-selection-particles-requirements.md`
+- **改动说明**：选中单位周围持续发射金色粒子
+
 ## [v0.4.0] - 2026-04-08
+
+### 改进 #10：单位死亡渐隐动画
+- **类型**：视觉效果
+- **需求文档**：`improvements/logs/2026-04-08-unit-death-animation-requirements.md`
+- **改动说明**：单位HP归零时播放0.5秒渐隐缩小动画再移除
+- **Commit**：`c3fa098`
+
+### 改进 #9：地形防御加成Canvas贴片显示
+- **类型**：UI/UX
+- **需求文档**：`improvements/logs/2026-04-08-terrain-bonus-canvas-requirements.md`
+- **改动说明**：有加成地形格子上直接显示+2/+4等数字
+- **Commit**：`c3fa098`
 
 ### 改进 #8：AI行动日志增强
 - **类型**：UI/UX
@@ -41,15 +80,13 @@
 ### 改进 #3：战斗日志超过20条自动折叠
 - **类型**：UI/UX
 - **需求文档**：`improvements/logs/2026-04-08-combat-log-requirements.md`
-- **改动说明**：Log 对象新增 `_render()/toggle()`，超20条显示"查看更多历史"，点击展开/收起
-- **验证**：截图确认折叠按钮显示
+- **改动说明**：Log对象新增 `_render()/toggle()`，超20条显示"查看更多历史"，点击展开/收起
 - **Commit**：`3acd91e`
 
 ### 改进 #2：可攻击目标橙色闪烁边框
 - **类型**：UI/UX
 - **需求文档**：`improvements/logs/2026-04-08-atktarget-flash-requirements.md`
 - **改动说明**：Renderer.unit() 增加 isAtkTarget 参数，攻击目标显示橙色脉冲边框
-- **验证**：截图确认敌方单位橙色边框闪烁
 - **Commit**：`3505b93`
 
 ## [v0.2.0] - 2026-04-08
@@ -58,7 +95,6 @@
 - **类型**：UI/UX
 - **需求文档**：`improvements/logs/2026-04-08-range-highlight-requirements.md`
 - **改动说明**：移动范围高亮由红色改为蓝色（`rgba(59,130,246,.15)`），攻击范围保持红色
-- **验证**：截图确认蓝色移动范围清晰可辨
 - **Commit**：`8688de8`
 
 ---
@@ -67,7 +103,7 @@
 
 ### 初始版本
 - **类型**：功能完整
-- **说明**：v3 完整战棋游戏，含回合制、AI、移动/攻击、武器克制、暴击反击、地形系统、v4 GBA 精灵图
+- **说明**：v3完整战棋游戏，含回合制、AI、移动/攻击、武器克制、暴击反击、地形系统、v4 GBA精灵图
 - **Commit**：`6fec70c`
 
 ---
