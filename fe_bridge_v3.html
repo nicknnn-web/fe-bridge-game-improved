@@ -608,7 +608,7 @@ class Unit {
     this.spx=this.px; this.spy=this.py;
     this.tpx=this.px; this.tpy=this.py;
     this.at=0;
-    this.moved=false; this.acted=false; this.flash=0; this.dead=false; this.attackScale=1;
+    this.moved=false; this.acted=false; this.flash=0; this.dead=false; this.dying=false; this.dyingAlpha=1; this.attackScale=1;
     this.bob=Math.random()*Math.PI*2;
   }
   get wp() { return WP[this.wk]; }
@@ -975,8 +975,8 @@ const game={
         at.flash=5; at.attackScale=1.5; at.hp=Math.max(0,at.hp-rcDmg);
         Log.add(`<span class="defender">${df.nm}</span> 反击 <span class="damage">-${rcDmg}</span>${rc.c?' <span class="crit">💥</span>':''}`);
       }
-      if(df.hp<=0&&!df.dead){df.dead=true; Log.add(`<span class="death">${df.nm} 生命归零</span>`);}
-      if(at.hp<=0&&!at.dead){at.dead=true; Log.add(`<span class="death">${at.nm} 生命归零</span>`);}
+      if(df.hp<=0&&!df.dead){df.dead=true; df.dying=true; Log.add(`<span class="death">${df.nm} 生命归零</span>`);}
+      if(at.hp<=0&&!at.dead){at.dead=true; at.dying=true; Log.add(`<span class="death">${at.nm} 生命归零</span>`);}
       this.sel=null; this.mvRange=[]; this.atkTargets=[]; this.busy=false;
       this.checkAllDone(); this.checkEnd();
     },canCt?350/this.speed:100/this.speed);
@@ -1094,7 +1094,7 @@ const game={
     Renderer.addParticles(df.x,df.y,r.c?'#fbbf24':'#ef4444',r.c?8:4);
     df.flash=5; df.hp=Math.max(0,df.hp-finalDmg);
     Log.add(`<span class="defender">${at.nm}</span> 攻击 <span class="attacker">${df.nm}</span> <span class="damage">-${finalDmg}</span>${r.c?' <span class="crit">💥</span>':''}`);
-    if(df.hp<=0&&!df.dead){df.dead=true; Log.add(`<span class="death">${df.nm} 生命归零</span>`);}
+    if(df.hp<=0&&!df.dead){df.dead=true; df.dying=true; Log.add(`<span class="death">${df.nm} 生命归零</span>`);}
     const canCt=df.wp.r>=at.wp.r&&!r.c&&df.hp>0;
     setTimeout(()=>{
       if(canCt){
@@ -1104,7 +1104,7 @@ const game={
         Renderer.addParticles(at.x,at.y,'#fff',3);
         at.flash=5; at.attackScale=1.5; at.hp=Math.max(0,at.hp-rcFinalDmg);
         Log.add(`<span class="attacker">${df.nm}</span> 反击 <span class="defender">${at.nm}</span> <span class="damage">-${rcFinalDmg}</span>${rc.c?' <span class="crit">💥</span>':''}`);
-        if(at.hp<=0&&!at.dead){at.dead=true; Log.add(`<span class="death">${at.nm} 生命归零</span>`);}
+        if(at.hp<=0&&!at.dead){at.dead=true; at.dying=true; Log.add(`<span class="death">${at.nm} 生命归零</span>`);}
       }
       setTimeout(cb,250/this.speed);
     },canCt?350/this.speed:100/this.speed);
@@ -1243,7 +1243,24 @@ const Renderer={
     });
   },
   unit(u,sel,t,isAtkTarget){
-    if(u.dead) return;
+    if(u.dead){
+      if(u.dying){
+        const c=this.ctx;
+        u.dyingAlpha-=0.04*game.speed;
+        if(u.dyingAlpha<=0){u.dying=false; return;}
+        const px=u.px, py=u.py;
+        const sc=u.dyingAlpha*0.6+0.4;
+        c.save();
+        c.globalAlpha=u.dyingAlpha;
+        c.translate(px,py); c.scale(sc,sc); c.translate(-px,-py);
+        c.fillStyle='rgba(0,0,0,.3)'; c.beginPath(); c.ellipse(px,py+16,12,3,0,0,7); c.fill();
+        c.fillStyle='#1a1a1a'; c.beginPath(); c.arc(px,py,17,0,7); c.fill();
+        c.strokeStyle='#ef4444'; c.lineWidth=1; c.globalAlpha=u.dyingAlpha*0.5;
+        c.beginPath(); c.arc(px,py,17,0,7); c.stroke();
+        c.restore();
+      }
+      return;
+    }
     const c=this.ctx;
     const bob=Math.sin(t*2+u.bob)*1.5;
     const px=u.px, py=u.py+bob;
