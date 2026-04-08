@@ -608,7 +608,7 @@ class Unit {
     this.spx=this.px; this.spy=this.py;
     this.tpx=this.px; this.tpy=this.py;
     this.at=0;
-    this.moved=false; this.acted=false; this.flash=0; this.dead=false; this.dying=false; this.dyingAlpha=1; this.attackScale=1;
+    this.moved=false; this.acted=false; this.flash=0; this.dead=false; this.dying=false; this.dyingAlpha=1; this.attackScale=1; this.recoil=0; this._lunge=0;
     this.bob=Math.random()*Math.PI*2;
   }
   get wp() { return WP[this.wk]; }
@@ -916,14 +916,44 @@ const game={
     const sx=528/r.width, sy=528/r.height;
     const gx=Math.floor((e.clientX-r.left)*sx/TS);
     const gy=Math.floor((e.clientY-r.top)*sy/TS);
-    if(gx<0||gx>=12||gy<0||gy>=12){ this._hovered=null; return; }
+    if(gx<0||gx>=12||gy<0||gy>=12){ this._hovered=null; Renderer._hoverPath=null; return; }
     this._hovered=[gx,gy];
     const u=this.unitAt(gx,gy);
     if(!u||u.dead) UI.showTerrain(gx,gy);
+    // 移动路径预显：若悬停的是mvRange内的格子，计算路径
+    if(this.sel&&!this.sel.acted&&this.mvRange.some(([mx,my])=>mx===gx&&my===gy)){
+      const path=this._findPath(this.sel,this.sel.x,this.sel.y,gx,gy);
+      Renderer._hoverPath=path;
+    }else{
+      Renderer._hoverPath=null;
+    }
   },
 
   onHoverEnd(){
     this._hovered=null;
+    Renderer._hoverPath=null;
+  },
+  _findPath(u,sx,sy,ex,ey){
+    // 简单BFS找路
+    const vis={}, parent={}, q=[[sx,sy]];
+    vis[`${sx},${sy}`]=1;
+    const key=(x,y)=>`${x},${y}`;
+    while(q.length){
+      const [x,y]=q.shift();
+      if(x===ex&&y===ey) break;
+      for(const [dx,dy] of[[1,0],[-1,0],[0,1],[0,-1]]){
+        const nx=x+dx, ny=y+dy, k=key(nx,ny);
+        if(vis[k]||nx<0||nx>=12||ny<0||ny>=12) continue;
+        const t=MAP[ny][nx];
+        if(t===T.RIVER||t===T.WALL||t===T.MOUNTAIN) continue;
+        if(game.unitAt(nx,ny)&&!(nx===ex&&ny===ey)) continue;
+        vis[k]=1; parent[k]=`${x},${y}`; q.push([nx,ny]);
+      }
+    }
+    // 重建路径
+    const path=[[ex,ey]]; let cur=`${ex},${ey}`;
+    while(parent[cur]){cur=parent[cur]; path.unshift(cur.split(',').map(Number));}
+    return path;
   },
 
   click(gx,gy){
@@ -931,16 +961,16 @@ const game={
     if(this.sel){
       // 点击已选中的己方单位 → 取消选中
       if(u&&u===this.sel){
-        this.sel=null; this.mvRange=[]; this.atkTargets=[]; UI.showUnit(null); return;
+        this.sel=null; this.mvRange=[]; this.atkTargets=[]; Renderer._atkSel=null; UI.showUnit(null); return;
       }
       if(u&&this.atkTargets.includes(u)){ this.attack(this.sel,u); this.sel=null; this.mvRange=[]; this.atkTargets=[]; return; }
       if(this.mvRange.some(([mx,my])=>mx===gx&&my===gy)){ this.move(gx,gy); return; }
       if(u&&u.isPlayer&&!u.dead&&!u.done){ this.sel=u; this.mvRange=u.moved?[]:bfs(u); this.atkTargets=u.acted?[]:atkRange(u); UI.showUnit(u); return; }
-      this.sel=null; this.mvRange=[]; this.atkTargets=[]; UI.showUnit(null); this.checkAllDone(); return;
+      this.sel=null; this.mvRange=[]; this.atkTargets=[]; Renderer._atkSel=null; UI.showUnit(null); this.checkAllDone(); return;
     }
     if(u&&u.isPlayer&&!u.dead){
       if(u.done){Log.add(`<span class="system">${u.nm} 已行动</span>`); this.sel=null; this.mvRange=[]; this.atkTargets=[]; UI.showUnit(u); this.checkAllDone(); return;}
-      this.sel=u; this.mvRange=u.moved?[]:bfs(u); this.atkTargets=u.acted?[]:atkRange(u); UI.showUnit(u);
+      this.sel=u; this.mvRange=u.moved?[]:bfs(u); this.atkTargets=u.acted?[]:atkRange(u); Renderer._atkSel=u; UI.showUnit(u);
     } else if(u&&!u.isPlayer&&!u.dead){
       UI.showUnit(u);
     } else {
@@ -952,7 +982,7 @@ const game={
   move(gx,gy){
     const u=this.sel;
     u.moveTo(gx,gy); u.moved=true;
-    this.mvRange=[]; this.atkTargets=atkRange(u);
+    this.mvRange=[]; this.atkTargets=atkRange(u); Renderer._atkSel=this.sel;
     if(this.atkTargets.length===0){u.acted=true; Log.add(`<span class="attacker">${u.nm}</span> 移动至 (${gx},${gy})`);}
     else{Log.add(`<span class="attacker">${u.nm}</span> 移动至 (${gx},${gy})，可攻击`);}
     this.checkAllDone();
@@ -960,10 +990,12 @@ const game={
 
   attack(at,df){
     this.busy=true; at.acted=true; at.attackScale=1.5; df.attackScale=1.5;
+    at._lunge=1; df._lunge=-0.5;
     const r=dmg(at,df);
     const finalDmg=r.c ? r.v*2 : r.v;
     Renderer.addFloater(df.x,df.y,finalDmg,r.c,r.c);
     Renderer.addParticles(df.x,df.y,r.c?'#fbbf24':'#ef4444',r.c?8:4);
+    Renderer.shake(r.c?10:5);
     df.flash=5; df.hp=Math.max(0,df.hp-finalDmg);
     Log.add(`<span class="attacker">${at.nm}</span> 攻击 <span class="defender">${df.nm}</span> <span class="damage">-${finalDmg}</span>${r.c?' <span class="crit">💥</span>':''}`);
     const canCt=df.wp.r>=at.wp.r&&!r.c&&df.hp>0;
@@ -976,8 +1008,8 @@ const game={
         at.flash=5; at.attackScale=1.5; at.hp=Math.max(0,at.hp-rcDmg);
         Log.add(`<span class="defender">${df.nm}</span> 反击 <span class="damage">-${rcDmg}</span>${rc.c?' <span class="crit">💥</span>':''}`);
       }
-      if(df.hp<=0&&!df.dead){df.dead=true; df.dying=true; Log.add(`<span class="death">${df.nm} 生命归零</span>`);}
-      if(at.hp<=0&&!at.dead){at.dead=true; at.dying=true; Log.add(`<span class="death">${at.nm} 生命归零</span>`);}
+      if(df.hp<=0&&!df.dead){df.dead=true; df.dying=true; Log.add(`<span class="death">${df.nm} 生命归零</span>`); Renderer._combo++;}
+      if(at.hp<=0&&!at.dead){at.dead=true; at.dying=true; Log.add(`<span class="death">${at.nm} 生命归零</span>`); Renderer._combo=0;}
       this.sel=null; this.mvRange=[]; this.atkTargets=[]; this.busy=false;
       this.checkAllDone(); this.checkEnd();
     },canCt?350/this.speed:100/this.speed);
@@ -1090,10 +1122,12 @@ const game={
 
   attackAI(at,df,cb){
     at.acted=true; at.attackScale=1.5; df.attackScale=1.5;
+    at._lunge=1; df._lunge=-0.5;
     const r=dmg(at,df);
     const finalDmg=r.c ? r.v*2 : r.v;
     Renderer.addFloater(df.x,df.y,finalDmg,r.c,r.c);
     Renderer.addParticles(df.x,df.y,r.c?'#fbbf24':'#ef4444',r.c?8:4);
+    Renderer.shake(r.c?10:5);
     df.flash=5; df.hp=Math.max(0,df.hp-finalDmg);
     Log.add(`<span class="defender">${at.nm}</span> 攻击 <span class="attacker">${df.nm}</span> <span class="damage">-${finalDmg}</span>${r.c?' <span class="crit">💥</span>':''}`);
     if(df.hp<=0&&!df.dead){df.dead=true; df.dying=true; Log.add(`<span class="death">${df.nm} 生命归零</span>`);}
@@ -1128,17 +1162,31 @@ const game={
   loop(){
     const t=performance.now()/1000;
     Renderer.clear();
+    if(Renderer._shake){
+      const s=Renderer._shake;
+      Renderer.ctx.save();
+      Renderer.ctx.translate(Math.random()*s*2-s,Math.random()*s*2-s);
+    }
     Renderer.map(t);
     if(this.mvRange.length) Renderer.mvRange(this.mvRange);
-    if(this.atkTargets.length) Renderer.atkRange(this.atkTargets);
+    if(this.atkTargets.length) Renderer.atkRange(this.atkTargets,this.sel?this.sel.wp.t:'');
     if(this._hovered) Renderer.hoverTile(this._hovered[0],this._hovered[1],t);
+    if(Renderer._hoverPath) Renderer.mvPath(Renderer._hoverPath);
     this.units.forEach(u=>{u.tick(); Renderer.unit(u,this.sel===u,t,this.atkTargets.includes(u));});
     Renderer.particles();
     Renderer.floaters();
     Renderer.banner();
+    Renderer.miniMap(game.units);
+    if(Renderer._combo>0) Renderer.combo(Renderer._combo);
+    if(Renderer._shake){
+      Renderer.ctx.restore();
+      Renderer._shake=Math.max(0,Renderer._shake-this.speed*2);
+    }
     this.units.forEach(u=>{
       if(u.flash>0) u.flash-=this.speed;
       if(u.attackScale>1){u.attackScale=Math.max(1,u.attackScale-0.05*this.speed);}
+      if(u._lunge>0){u._lunge=Math.max(0,u._lunge-0.15*this.speed);}
+      else if(u._lunge<0){u._lunge=Math.min(0,u._lunge+0.1*this.speed);}
     });
     requestAnimationFrame(()=>this.loop());
   }
@@ -1149,7 +1197,7 @@ const game={
 // ================================================================
 const Renderer={
   canvas:null, ctx:null,
-  _ps:[], _ft:[], _banner:null,
+  _ps:[], _ft:[], _banner:null, _shake:0, _hoverPath:null, _combo:0,
   spriteSheet:null, spriteReady:false,
   // Sprite 索引映射 (32x32 per sprite, 512x96 sheet: 16列x3行)
   // 地形(行0) | 蓝队单位(行1) | 红队单位(行2)
@@ -1240,11 +1288,43 @@ const Renderer={
     c.strokeStyle=`rgba(251,191,36,${pulse})`; c.lineWidth=2;
     c.strokeRect(x*TS+2,y*TS+2,TS-4,TS-4);
   },
-  atkRange(units){
+  mvPath(path){
+    if(!path||path.length<2) return;
+    const c=this.ctx;
+    c.save();
+    // 绘制虚线点路径
+    path.forEach(([px,py],i)=>{
+      const next=path[i+1];
+      if(!next) return;
+      const nx=px*TS+TS/2, ny=py*TS+TS/2;
+      const nnx=next[0]*TS+TS/2, nny=next[1]*TS+TS/2;
+      const mx=(nx+nnx)/2, my=(ny+nny)/2;
+      const pulse=0.4+Math.sin(i*0.8)*0.2;
+      c.fillStyle=`rgba(251,191,36,${pulse})`;
+      c.beginPath(); c.arc(mx,my,3,0,7); c.fill();
+    });
+    // 起点标记
+    const [sx,sy]=path[0];
+    c.strokeStyle='rgba(251,191,36,0.6)'; c.lineWidth=1;
+    c.setLineDash([2,2]);
+    c.beginPath();
+    const ox=path[0][0]*TS+TS/2, oy=path[0][1]*TS+TS/2;
+    c.moveTo(ox,oy);
+    path.forEach(([px,py])=>c.lineTo(px*TS+TS/2,py*TS+TS/2));
+    c.stroke();
+    c.setLineDash([]);
+    c.restore();
+  },
+  atkRange(units,wpType){
     const c=this.ctx;
     units.forEach(u=>{
       c.fillStyle='rgba(239,68,68,.12)'; c.strokeStyle='rgba(239,68,68,.45)';
       c.fillRect(u.x*TS+3,u.y*TS+3,TS-6,TS-6); c.strokeRect(u.x*TS+3,u.y*TS+3,TS-6,TS-6);
+      // 显示武器类型图标
+      const ic=wpType==='剑'?'⚔':wpType==='枪'?'🔱':wpType==='斧'?'🪓':wpType==='弓'?'🏹':'⚔';
+      c.font='11px sans-serif'; c.textAlign='center';
+      c.fillStyle='rgba(255,255,255,0.5)';
+      c.fillText(ic,u.x*TS+TS/2,u.y*TS+TS/2+4);
     });
   },
   unit(u,sel,t,isAtkTarget){
@@ -1292,22 +1372,34 @@ const Renderer={
       }
     }
 
-    // attack target flashing border (orange pulse)
+    // attack target flashing border (orange pulse) + damage preview
     if(isAtkTarget){
       const pulse=0.5+Math.sin(t*5)*0.5;
       c.strokeStyle=`rgba(251,191,36,${pulse})`; c.lineWidth=2;
       c.shadowColor='#fbbf24'; c.shadowBlur=10;
       c.beginPath(); c.arc(px,py,20,0,7); c.stroke();
       c.shadowBlur=0;
+      // 伤害预判数字
+      if(this._atkSel){
+        const r=dmg(this._atkSel,u);
+        const preDmg=r.c?r.v*2:r.v;
+        c.font='bold 10px "Press Start 2P",monospace';
+        c.textAlign='center';
+        c.fillStyle='rgba(0,0,0,0.6)';
+        c.fillText(`-${preDmg}`,px+1,py-22+1);
+        c.fillStyle=r.c?'#fbbf24':'#fff';
+        c.fillText(`-${preDmg}`,px,py-22);
+      }
     }
 
     // bg circle
     c.fillStyle='#0d1117'; c.beginPath(); c.arc(px,py,17,0,7); c.fill();
 
-    // aura for units not yet acted
+    // aura for units not yet acted (pulsing)
     if(!u.done){
-      c.fillStyle=u.isPlayer?'rgba(59,130,246,.15)':'rgba(239,68,68,.15)';
-      c.beginPath(); c.arc(px,py,16,0,7); c.fill();
+      const ap=0.5+Math.sin(t*2.5+u.bob)*0.5;
+      c.fillStyle=u.isPlayer?`rgba(59,130,246,${0.1+ap*0.15})`:`rgba(239,68,68,${0.1+ap*0.15})`;
+      c.beginPath(); c.arc(px,py,16+ap*2,0,7); c.fill();
     }
 
     // job color ring (inside unit circle, above aura)
@@ -1425,7 +1517,7 @@ const Renderer={
       return f.life>0;
     });
   },
-  addFloater(x,y,v,c,crit){ this._ft.push({x:x*TS+22,y:y*TS+22,vy:-2.5,v,c,crit:!!crit,life:40,ml:40,bounce:crit?1:0,bx:x*TS+22,by:y*TS+22}); },
+  addFloater(x,y,v,c,crit){ const ox=(Math.random()-.5)*16,oy=(Math.random()-.5)*8; this._ft.push({x:x*TS+22+ox,y:y*TS+22+oy,vy:-2.5,v,c,crit:!!crit,life:40,ml:40,bounce:crit?1:0,bx:x*TS+22+ox,by:y*TS+22+oy}); },
   particles(){
     this._ps=this._ps.filter(p=>{
       p.x+=p.vx; p.y+=p.vy; p.vy+=0.15; p.life--;
@@ -1462,6 +1554,52 @@ const Renderer={
   },
   showBanner(text,enemy,ms){
     this._banner={text,enemy,life:Math.round((ms||2000)/16.67),ml:Math.round((ms||2000)/16.67)};
+  },
+  shake(intensity){
+    this._shake=Math.max(this._shake,intensity||8);
+  },
+  combo(c){
+    if(c<2) return;
+    const c2=this.ctx;
+    c2.save();
+    const a=Math.min(1,this._combo/20);
+    c2.globalAlpha=a;
+    c2.font=`bold 24px "Press Start 2P",monospace`;
+    c2.textAlign='center';
+    c2.fillStyle='#000';
+    c2.fillText(`${c}连击!`,266,300+1);
+    c2.fillStyle='#fbbf24';
+    c2.fillText(`${c}连击!`,266,300);
+    c2.restore();
+    this._combo=Math.max(0,this._combo-1);
+  },
+  miniMap(units){
+    const c=this.ctx;
+    const mx=528-80, my=528-80, mw=72, mh=72;
+    // 底色
+    c.fillStyle='rgba(0,0,0,0.7)';
+    c.fillRect(mx-2,my-2,mw+4,mh+4);
+    c.strokeStyle='rgba(255,255,255,0.2)'; c.lineWidth=1;
+    c.strokeRect(mx-2,my-2,mw+4,mh+4);
+    // 地形色块
+    const colors={};
+    colors[T.FOREST]='#2d5a1e'; colors[T.RIVER]='#1a4a7a'; colors[T.MOUNTAIN]='#555';
+    colors[T.RUINS]='#4a3a2a'; colors[T.HILL]='#3a4a2a'; colors[T.WALL]='#444';
+    colors[T.BRIDGE]='#6a5a3a'; colors[T.PLAIN]='#1a2a1a';
+    colors[T.BLUE_CASTLE]='#1a3a6a'; colors[T.RED_CASTLE]='#6a1a1a';
+    const ts=mw/12;
+    for(let y=0;y<12;y++)for(let x=0;x<12;x++){
+      const g=MAP[y][x];
+      c.fillStyle=colors[g]||'#1a1a1a';
+      c.fillRect(mx+x*ts,my+y*ts,ts,ts);
+    }
+    // 单位点
+    units.forEach(u=>{
+      if(u.dead) return;
+      const ux=mx+u.x*ts+ts/2, uy=my+u.y*ts+ts/2;
+      c.fillStyle=u.isPlayer?'#3b82f6':'#ef4444';
+      c.beginPath(); c.arc(ux,uy,2.5,0,7); c.fill();
+    });
   },
 };
 

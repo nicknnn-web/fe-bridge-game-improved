@@ -4,6 +4,58 @@
 
 ---
 
+## [v0.6.0] - 2026-04-08
+
+### 改进 #25：胜负界面战斗统计
+- **类型**：UI/UX
+- **需求文档**：`improvements/logs/2026-04-08-victory-summary-requirements.md`
+- **改动说明**：胜负界面显示生还数/总兵数、歼敌数，完美胜利特殊提示
+
+### 改进 #24：伤害预览显示
+- **类型**：交互体验
+- **需求文档**：`improvements/logs/2026-04-08-damage-preview-requirements.md`
+- **改动说明**：选中攻击单位时悬停目标显示预估伤害数字
+
+### 改进 #23：连击计数器
+- **类型**：视觉效果
+- **需求文档**：`improvements/logs/2026-04-08-combo-counter-requirements.md`
+- **改动说明**：连续击杀时显示"N连击！"提示，连击重置机制
+
+### 改进 #22：攻击范围武器图标
+- **类型**：UI/UX
+- **需求文档**：`improvements/logs/2026-04-08-weapon-icons-requirements.md`
+- **改动说明**：攻击目标格子上显示武器类型图标（⚔🔱🪓🏹）
+
+### 改进 #21：单位呼吸光晕增强
+- **类型**：视觉效果
+- **需求文档**：`improvements/logs/2026-04-08-breathing-aura-requirements.md`
+- **改动说明**：选中单位光晕透明度+半径呼吸脉动效果
+
+### 改进 #20：小地图显示
+- **类型**：UI/UX
+- **需求文档**：`improvements/logs/2026-04-08-minimap-requirements.md`
+- **改动说明**：战场右下角显示72x72小地图，地形+单位位置
+
+### 改进 #19：移动路径预览
+- **类型**：交互体验
+- **需求文档**：`improvements/logs/2026-04-08-mvpath-preview-requirements.md`
+- **改动说明**：悬停移动范围显示金色虚线路径+圆点
+
+### 改进 #18：攻击反作用力
+- **类型**：视觉效果
+- **需求文档**：`improvements/logs/2026-04-08-attack-recoil-requirements.md`
+- **改动说明**：攻击者向前冲刺，受击者向后仰，平滑恢复
+
+### 改进 #17：伤害数字随机偏移
+- **类型**：视觉效果
+- **需求文档**：`improvements/logs/2026-04-08-damage-offset-requirements.md`
+- **改动说明**：伤害数字位置±8px/±4px随机偏移，避免堆叠
+
+### 改进 #16：屏幕震动效果
+- **类型**：视觉效果
+- **需求文档**：`improvements/logs/2026-04-08-screen-shake-requirements.md`
+- **改动说明**：攻击命中画面震动，暴击10强度/普攻5强度
+
 ## [v0.5.0] - 2026-04-08
 
 ### 改进 #15：战场格子呼吸动画
